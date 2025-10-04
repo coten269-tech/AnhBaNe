@@ -34,6 +34,7 @@
       border: 2px solid #ccc;
       border-radius: 5px;
       transition: border-color 0.3s;
+      font-size: 16px;
     }
     input.invalid {
       border-color: red;
@@ -53,6 +54,7 @@
       border: none;
       border-radius: 5px;
       cursor: pointer;
+      font-size: 16px;
     }
     button:hover {
       background: #0056b3;
@@ -69,15 +71,13 @@
 </form>
 
 <script>
-  // Danh sách họ & tên phổ biến ở Việt Nam (để tăng độ tin cậy)
   const commonNames = [
-    "Nguyễn", "Trần", "Lê", "Phạm", "Hoàng", "Huỳnh", "Phan", "Vũ", "Võ", "Đặng", "Bùi", "Đỗ",
-    "Hồ", "Ngô", "Dương", "Lý", "Anh", "Bình", "Dũng", "Hạnh", "Hải", "Hảo", "Hoa", "Hùng", "Huy",
-    "Khanh", "Lam", "Linh", "Long", "Minh", "Nam", "Nga", "Ngọc", "Phương", "Quang", "Sơn", "Tâm",
-    "Thắng", "Thanh", "Thi", "Thiện", "Trang", "Tuấn", "Tú", "Vân", "Đăng", "Đức", "Tài"
+    "Nguyễn","Trần","Lê","Phạm","Hoàng","Huỳnh","Phan","Vũ","Võ","Đặng","Bùi","Đỗ",
+    "Hồ","Ngô","Dương","Lý","Anh","Bình","Dũng","Hạnh","Hải","Hoa","Hùng","Huy",
+    "Khanh","Lam","Linh","Long","Minh","Nam","Nga","Ngọc","Phương","Quang","Sơn",
+    "Tâm","Thắng","Thanh","Thi","Thiện","Trang","Tuấn","Tú","Vân","Đăng","Đức","Tài"
   ];
 
-  // Hàm tính entropy (độ ngẫu nhiên)
   function calculateEntropy(str) {
     const freq = {};
     for (let char of str) freq[char] = (freq[char] || 0) + 1;
@@ -89,41 +89,44 @@
     return entropy;
   }
 
-  // Kiểm tra hợp lệ của tên
   function isValidName(name) {
-    if (!name) return false;
+    if (!name) return { ok: false, reason: "Tên trống" };
     name = name.trim();
 
-    // Giới hạn độ dài và số từ
     const words = name.split(/\s+/);
-    if (words.length < 1 || words.length > 4) return false;
-    if (name.length < 3 || name.length > 40) return false;
+    if (words.length < 1 || words.length > 4)
+      return { ok: false, reason: "Tên phải có từ 1 đến 4 từ" };
+    if (name.length < 3 || name.length > 40)
+      return { ok: false, reason: "Tên quá ngắn hoặc quá dài" };
 
-    // Regex chỉ cho phép chữ và dấu tiếng Việt
-    const regex = /^[A-ZÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚĂĐĨŨƠƯ][a-zàáâãèéêìíòóôõùúăđĩũơưỳỵỷỹẻẽẻẽệọỏốồổỗộớờởỡợụủứừửữự]+(?: [A-ZÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚĂĐĨŨƠƯ][a-zàáâãèéêìíòóôõùúăđĩũơưỳỵỷỹẻẽệọỏớờởỡợụủứừửữự]*)*$/;
-    if (!regex.test(name)) return false;
+    // Regex cho phép chữ thường hoặc chữ hoa, có dấu tiếng Việt
+    const regex = /^[a-zA-ZÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚĂĐƠƯÝàáâãèéêìíòóôõùúăđơưýỳỵỷỹĩõũăâêôơư\s]+$/u;
+    if (!regex.test(name))
+      return { ok: false, reason: "Tên chỉ được chứa chữ cái tiếng Việt (có hoặc không viết hoa)" };
 
-    // Tính entropy: nếu quá cao -> tên vô nghĩa
     const entropy = calculateEntropy(name.replace(/\s+/g, ""));
-    if (entropy > 4.5) return false;
+    if (entropy > 4.5)
+      return { ok: false, reason: "Tên trông giống chuỗi ngẫu nhiên" };
 
-    // Kiểm tra có họ/tên phổ biến không
     const hasCommon = commonNames.some(n => name.toLowerCase().includes(n.toLowerCase()));
-    return hasCommon;
+    if (!hasCommon)
+      return { ok: false, reason: "Tên không khớp với họ/tên phổ biến" };
+
+    return { ok: true };
   }
 
-  // Xử lý form
   const form = document.getElementById("nameForm");
   const nameInput = document.getElementById("name");
   const errorMsg = document.getElementById("errorMsg");
 
   form.addEventListener("submit", function(e) {
     const name = nameInput.value.trim();
+    const check = isValidName(name);
 
-    if (!isValidName(name)) {
+    if (!check.ok) {
       e.preventDefault();
       nameInput.classList.add("invalid");
-      errorMsg.textContent = "❌ Tên không hợp lệ! Hãy nhập tên thật (ví dụ: Đặng Hải Đăng)";
+      errorMsg.textContent = "❌ " + check.reason;
       errorMsg.style.display = "block";
     } else {
       nameInput.classList.remove("invalid");
