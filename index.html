@@ -2,22 +2,115 @@
 <html lang="vi">
 <head>
   <meta charset="UTF-8">
-  <title>Form Test</title>
+  <title>Gửi tên của bạn</title>
+  <style>
+    /* 🌈 Nền 7 màu chuyển động */
+    body {
+      margin: 0;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: linear-gradient(-45deg, 
+        #ff0000, #ff7f00, #ffff00, #00ff00, 
+        #0000ff, #4b0082, #8f00ff);
+      background-size: 400% 400%;
+      animation: gradient 10s ease infinite;
+      font-family: 'Poppins', sans-serif;
+    }
+
+    @keyframes gradient {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    /* 🧾 Form */
+    .form-container {
+      background: rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(10px);
+      border-radius: 15px;
+      padding: 30px 40px;
+      box-shadow: 0 0 20px rgba(0,0,0,0.3);
+      text-align: center;
+      width: 350px;
+      color: white;
+    }
+
+    h2 {
+      margin-bottom: 20px;
+    }
+
+    input {
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 8px;
+      margin-bottom: 15px;
+      outline: none;
+      font-size: 16px;
+    }
+
+    button {
+      width: 100%;
+      padding: 12px;
+      background: rgba(255,255,255,0.3);
+      color: white;
+      border: 2px solid white;
+      border-radius: 8px;
+      font-size: 16px;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+
+    button:hover {
+      background: white;
+      color: #333;
+    }
+
+    .msg {
+      margin-top: 15px;
+      font-weight: bold;
+    }
+  </style>
 </head>
 <body>
-  <h2>Test Form gửi qua Formspree</h2>
-  <form action="https://formspree.io/f/mwprbgra" method="POST">
-    <label>
-      Nhập tên:
-      <input type="text" name="name" required>
-    </label>
-    <br><br>
-    <label>
-      Email (tùy chọn):
-      <input type="email" name="email">
-    </label>
-    <br><br>
-    <button type="submit">Gửi</button>
-  </form>
+  <div class="form-container">
+    <h2>Nhập tên của bạn</h2>
+    <form id="nameForm" action="https://formspree.io/f/mwprbgra" method="POST">
+      <input type="text" name="name" placeholder="Tên của bạn..." required>
+      <button type="submit">Gửi</button>
+    </form>
+    <div id="message" class="msg"></div>
+  </div>
+
+  <script>
+    const form = document.getElementById('nameForm');
+    const msg = document.getElementById('message');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const formData = new FormData(form);
+      try {
+        const res = await fetch(form.action, {
+          method: form.method,
+          body: formData,
+          headers: { 'Accept': 'application/json' }
+        });
+
+        if (res.ok) {
+          msg.textContent = "✅ Gửi thành công!";
+          msg.style.color = "lime";
+          form.reset();
+        } else {
+          msg.textContent = "❌ Lỗi gửi, thử lại!";
+          msg.style.color = "red";
+        }
+      } catch (err) {
+        msg.textContent = "⚠️ Lỗi kết nối!";
+        msg.style.color = "yellow";
+      }
+    });
+  </script>
 </body>
 </html>
