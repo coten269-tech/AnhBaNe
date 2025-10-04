@@ -2,77 +2,54 @@
 <html lang="vi">
 <head>
   <meta charset="UTF-8">
-  <title>Trang chờ</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nhập tên gửi cho tôi</title>
   <style>
-    html, body {
-      height: 100%;
-      margin: 0;
+    body {
       font-family: Arial, sans-serif;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      flex-direction: column;
-      color: #fff;
-      background: linear-gradient(270deg, red, orange, yellow, green, blue, indigo, violet);
-      background-size: 1400% 1400%;
-      animation: gradientShift 10s ease infinite;
+      padding: 20px;
+      background: #f0f0f0;
     }
-    @keyframes gradientShift {
-      0% { background-position: 0% 50%; }
-      50% { background-position: 100% 50%; }
-      100% { background-position: 0% 50%; }
+    .form-box {
+      background: #fff;
+      padding: 20px;
+      max-width: 400px;
+      margin: auto;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     }
-    input, button {
+    .form-box input, .form-box button {
+      width: 100%;
       padding: 10px;
       margin-top: 10px;
-      font-size: 16px;
-      border: none;
-      border-radius: 5px;
+      box-sizing: border-box;
     }
-    button {
-      background-color: #000;
-      color: #fff;
+    .form-box button {
       cursor: pointer;
+      background: #007bff;
+      color: white;
+      border: none;
     }
-    button:hover {
-      background-color: #333;
+    .form-box button:hover {
+      background: #0056b3;
     }
   </style>
 </head>
 <body>
-  <h2>Nhập tên của bạn để tiếp tục</h2>
-  <input type="text" id="username" placeholder="Tên của bạn" />
-  <button onclick="sendName()">Tiếp tục</button>
+  <div class="form-box">
+    <h2>Nhập tên của bạn</h2>
+    <form id="nameForm" action="https://formspree.io/f/meorkyrg" method="POST">
+      <label for="name">Tên bạn:</label>
+      <input type="text" id="name" name="name" placeholder="Ví dụ: Nguyễn Văn A" required>
+      <button type="submit">Gửi</button>
+    </form>
+  </div>
 
   <script>
-    async function sendName() {
-      const name = document.getElementById("username").value.trim();
-      if (!name) {
-        alert("Vui lòng nhập tên!");
-        return;
-      }
-
-      try {
-        const res = await fetch("https://script.google.com/macros/s/AKfycbyznY1TaO_BMeyy4SaQU3uJ-7hd26cLXuE09PrILH5ZhdjI3rTi11ZL_4fjYYgpgIQI/exec", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({
-            name: name,
-            userAgent: navigator.userAgent
-          })
-        });
-        const txt = await res.text();
-        console.log("Response:", txt);
-      } catch (err) {
-        console.error("Error sending:", err);
-      }
-
-      // Sau khi gửi, chuyển sang trang chính
-      window.location.href = "main.html";
-    }
+    document.getElementById('nameForm').addEventListener('submit', function(e) {
+      // (Tùy chọn) hiện thông báo để người dùng biết là đã gửi
+      alert('Đang gửi tên của bạn... Vui lòng chờ trong giây lát.');
+      // Form sẽ tự submit sang Formspree
+    });
   </script>
 </body>
 </html>
