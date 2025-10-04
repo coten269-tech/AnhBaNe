@@ -1,22 +1,23 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Gửi tên của bạn</title>
+
   <style>
-    /* 🌈 Nền 7 màu chuyển động */
     body {
       margin: 0;
       height: 100vh;
       display: flex;
       justify-content: center;
       align-items: center;
-      background: linear-gradient(-45deg, 
-        #ff0000, #ff7f00, #ffff00, #00ff00, 
+      background: linear-gradient(-45deg,
+        #ff0000, #ff7f00, #ffff00, #00ff00,
         #0000ff, #4b0082, #8f00ff);
       background-size: 400% 400%;
       animation: gradient 10s ease infinite;
-      font-family: 'Poppins', sans-serif;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     }
 
     @keyframes gradient {
@@ -25,13 +26,12 @@
       100% { background-position: 0% 50%; }
     }
 
-    /* 🧾 Form */
     .form-container {
       background: rgba(255, 255, 255, 0.15);
       backdrop-filter: blur(10px);
       border-radius: 15px;
-      padding: 30px 40px;
-      box-shadow: 0 0 20px rgba(0,0,0,0.3);
+      padding: 40px 35px;
+      box-shadow: 0 0 15px rgba(0, 0, 0, 0.3);
       text-align: center;
       width: 350px;
       color: white;
@@ -39,6 +39,7 @@
 
     h2 {
       margin-bottom: 20px;
+      text-shadow: 0 0 5px white;
     }
 
     input {
@@ -54,7 +55,7 @@
     button {
       width: 100%;
       padding: 12px;
-      background: rgba(255,255,255,0.3);
+      background: rgba(255, 255, 255, 0.3);
       color: white;
       border: 2px solid white;
       border-radius: 8px;
@@ -74,27 +75,59 @@
     }
   </style>
 </head>
+
 <body>
   <div class="form-container">
     <h2>Nhập tên của bạn</h2>
-    <form id="nameForm" action="https://formspree.io/f/mwprbgra" method="POST">
-      <input type="text" name="name" placeholder="Tên của bạn..." required>
+
+    <form action="https://formspree.io/f/mwprbgra" method="POST" id="contactForm">
+      <input type="text" name="name" id="nameInput" placeholder="Tên của bạn..." required />
       <button type="submit">Gửi</button>
     </form>
-    <div id="message" class="msg"></div>
+
+    <div class="msg" id="msg"></div>
   </div>
 
   <script>
-    const form = document.getElementById('nameForm');
-    const msg = document.getElementById('message');
+    const form = document.getElementById('contactForm');
+    const nameInput = document.getElementById('nameInput');
+    const msg = document.getElementById('msg');
+
+    // Hàm kiểm tra tên hợp lệ
+    function isValidVietnameseName(name) {
+      // Loại bỏ khoảng trắng thừa
+      name = name.trim();
+      // Tách từ
+      const words = name.split(/\s+/);
+      // Giới hạn số từ (1–4)
+      if (words.length < 1 || words.length > 4) return false;
+
+      // Regex cho từng từ: Chữ cái Việt có dấu, bắt đầu bằng in hoa
+      const wordRegex = /^[A-ZÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚĂĐĨŨƠƯẠẢẤẦẨẪẬẮẰẲẴẶẸẺẼỀỀỂưỮỬỰỲỴÝỶỸa-zàáâãèéêìíòóôõùúăđĩũơưạảấầẩẫậắằẳẵặẹẻẽềềểễệỉịọỏốồổỗộớờởỡợụủứừửữựỳỵỷỹ]+$/;
+
+      return words.every(w => wordRegex.test(w));
+    }
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const formData = new FormData(form);
+      msg.textContent = "";
+
+      const name = nameInput.value;
+
+      // Kiểm tra hợp lệ
+      if (!isValidVietnameseName(name)) {
+        msg.textContent = "❌ Tên không hợp lệ! Vui lòng nhập tên thật (ví dụ: Hải Đăng)";
+        msg.style.color = "yellow";
+        return;
+      }
+
+      msg.textContent = "⏳ Đang gửi...";
+      const data = new FormData(form);
+
       try {
         const res = await fetch(form.action, {
           method: form.method,
-          body: formData,
+          body: data,
           headers: { 'Accept': 'application/json' }
         });
 
@@ -103,7 +136,7 @@
           msg.style.color = "lime";
           form.reset();
         } else {
-          msg.textContent = "❌ Lỗi gửi, thử lại!";
+          msg.textContent = "❌ Gửi thất bại, thử lại!";
           msg.style.color = "red";
         }
       } catch (err) {
