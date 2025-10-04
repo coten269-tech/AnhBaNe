@@ -18,5 +18,12 @@
 </head>
 <body>
   Đây là không gian khác 🌌
+
+  <script>
+    // Nếu người dùng refresh (F5 hoặc reload trang)
+    if (performance.navigation.type === performance.navigation.TYPE_RELOAD) {
+      window.location.href = "index.html"; // Quay về trang gốc
+    }
+  </script>
 </body>
 </html>
