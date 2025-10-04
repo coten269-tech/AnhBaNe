@@ -1,163 +1,116 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Nhập tên của bạn</title>
-
+  <meta charset="UTF-8">
+  <title>Nhập tên</title>
   <style>
     body {
-      margin: 0;
+      font-family: Arial, sans-serif;
+      background: linear-gradient(270deg, red, orange, yellow, green, blue, indigo, violet);
+      background-size: 1400% 1400%;
+      animation: rainbow 15s ease infinite;
       height: 100vh;
       display: flex;
       justify-content: center;
       align-items: center;
-      background: linear-gradient(-45deg,
-        #ff0000, #ff7f00, #ffff00, #00ff00,
-        #0000ff, #4b0082, #8f00ff);
-      background-size: 400% 400%;
-      animation: gradient 10s ease infinite;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     }
-
-    @keyframes gradient {
-      0% { background-position: 0% 50%; }
-      50% { background-position: 100% 50%; }
-      100% { background-position: 0% 50%; }
+    @keyframes rainbow {
+      0% {background-position: 0% 50%;}
+      50% {background-position: 100% 50%;}
+      100% {background-position: 0% 50%;}
     }
-
-    .form-container {
-      background: rgba(255, 255, 255, 0.15);
-      backdrop-filter: blur(10px);
+    form {
+      background: white;
+      padding: 25px 35px;
       border-radius: 15px;
-      padding: 40px 35px;
-      box-shadow: 0 0 15px rgba(0, 0, 0, 0.3);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.2);
       text-align: center;
-      width: 350px;
-      color: white;
+      width: 300px;
     }
-
-    h2 {
-      margin-bottom: 20px;
-      text-shadow: 0 0 5px white;
-    }
-
-    input {
+    input[type="text"] {
       width: 100%;
-      padding: 12px;
-      border: 2px solid transparent;
-      border-radius: 8px;
-      margin-bottom: 10px;
-      outline: none;
-      font-size: 16px;
+      padding: 10px;
+      margin-top: 8px;
+      border: 2px solid #ccc;
+      border-radius: 5px;
       transition: border-color 0.3s;
     }
-
-    input.error {
+    input.invalid {
       border-color: red;
-      background-color: rgba(255, 0, 0, 0.1);
-      animation: shake 0.3s;
     }
-
-    @keyframes shake {
-      0%, 100% { transform: translateX(0); }
-      20%, 60% { transform: translateX(-5px); }
-      40%, 80% { transform: translateX(5px); }
+    .error {
+      color: red;
+      font-size: 13px;
+      margin-top: 5px;
+      display: none;
     }
-
     button {
-      width: 100%;
-      padding: 12px;
-      background: rgba(255, 255, 255, 0.3);
-      color: white;
-      border: 2px solid white;
-      border-radius: 8px;
-      font-size: 16px;
-      cursor: pointer;
-      transition: 0.3s;
-    }
-
-    button:hover {
-      background: white;
-      color: #333;
-    }
-
-    .msg {
       margin-top: 15px;
-      font-weight: bold;
+      padding: 10px 15px;
+      background: #007bff;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #0056b3;
     }
   </style>
 </head>
-
 <body>
-  <div class="form-container">
-    <h2>Nhập tên của bạn</h2>
 
-    <!-- ⚠️ KHÔNG dùng form action -->
-    <div id="contactForm">
-      <input type="text" id="nameInput" placeholder="Tên của bạn..." required />
-      <button id="sendBtn">Gửi</button>
-    </div>
+<form id="nameForm" action="https://formspree.io/f/mwprbgra" method="POST">
+  <h2>Nhập tên của bạn</h2>
+  <input type="text" name="name" id="name" placeholder="Ví dụ: Nguyễn Văn An" required>
+  <div class="error" id="errorMsg"></div>
+  <button type="submit">Gửi</button>
+</form>
 
-    <div class="msg" id="msg"></div>
-  </div>
+<script>
+  const commonNames = ["Nguyen", "Tran", "Le", "Pham", "Hoang", "Huynh", "Phan", "Vu", "Vo", "Dang", "Bui", "Do", "Ho", "Ngo", "Duong", "Ly",
+                       "Anh", "Binh", "Dung", "Hanh", "Hao", "Hoa", "Hung", "Huy", "Khanh", "Lam", "Linh", "Long", "Minh", "Nam", "Nga", "Ngoc", "Phuong", "Quang", "Son", "Tam", "Thang", "Thanh", "Thi", "Thien", "Trang", "Tuan", "Van"];
 
-  <script>
-    const nameInput = document.getElementById('nameInput');
-    const sendBtn = document.getElementById('sendBtn');
-    const msg = document.getElementById('msg');
+  function isValidName(name) {
+    const regex = /^[A-ZÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚĂĐĨŨƠƯĂẠẢẤẦẨẪẬẮẰẲẴẶẸẺẼỀỀỂưƠỢỠỨỪỬỮỰỲỴÝỶỸ][a-zàáâãèéêìíòóôõùúăđĩũơưạảấầẩẫậắằẳẵặẹẻẽềềểươợỡứừửữựỳỵỷỹ]*( [A-ZÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚĂĐĨŨƠƯĂẠẢẤẦẨẪẬẮẰẲẴẶẸẺẼỀỀỂưƠỢỠỨỪỬỮỰỲỴÝỶỸ][a-zàáâãèéêìíòóôõùúăđĩũơưạảấầẩẫậắằẳẵặẹẻẽềềểươợỡứừửữựỳỵỷỹ]*){0,3}$/;
+    if (!regex.test(name)) return false;
 
-    // Regex kiểm tra tên Việt hợp lệ
-    const nameRegex = /^([A-ZÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚĂĐĨŨƠƯẠẢẤẦẨẪẬẮẰẲẴẶẸẺẼỀỂỄỆỈỊỌỎỐỒỔỖỘỚỜỞỠỢỤỦỨỪỬỮỰỲỴÝỶỸ][a-zàáâãèéêìíòóôõùúăđĩũơưạảấầẩẫậắằẳẵặẹẻẽềểễệỉịọỏốồổỗộớờởỡợụủứừửữựỳỵỷỹ]*)( [A-ZÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚĂĐĨŨƠƯẠẢẤẦẨẪẬẮẰẲẴẶẸẺẼỀỂỄỆỈỊỌỎỐỒỔỖỘỚỜỞỠỢỤỦỨỪỬỮỰỲỴÝỶỸ][a-zàáâãèéêìíòóôõùúăđĩũơưạảấầẩẫậắằẳẵặẹẻẽềểễệỉịọỏốồổỗộớờởỡợụủứừửữựỳỵỷỹ]*){0,3})$/;
+    // Tính entropy để phát hiện chuỗi ngẫu nhiên
+    const entropy = calculateEntropy(name.replace(/ /g, ''));
+    if (entropy > 4.5) return false;
 
-    sendBtn.addEventListener('click', async () => {
-      msg.textContent = "";
-      nameInput.classList.remove('error');
-      const name = nameInput.value.trim();
+    // Kiểm tra có khớp họ/tên phổ biến không
+    const hasCommon = commonNames.some(n => name.toLowerCase().includes(n.toLowerCase()));
+    return hasCommon;
+  }
 
-      // Nếu tên không hợp lệ ❌
-      if (!nameRegex.test(name)) {
-        msg.textContent = "❌ Tên không hợp lệ! (Ví dụ: Hải Đăng)";
-        msg.style.color = "yellow";
-        nameInput.classList.add('error');
-        return;
-      }
+  function calculateEntropy(str) {
+    const freq = {};
+    for (let char of str) freq[char] = (freq[char] || 0) + 1;
+    let entropy = 0;
+    for (let char in freq) {
+      const p = freq[char] / str.length;
+      entropy -= p * Math.log2(p);
+    }
+    return entropy;
+  }
 
-      // Nếu tên hợp lệ ✅
-      msg.textContent = "⏳ Đang gửi...";
-      msg.style.color = "white";
+  document.getElementById("nameForm").addEventListener("submit", function(e) {
+    const nameInput = document.getElementById("name");
+    const errorMsg = document.getElementById("errorMsg");
+    const name = nameInput.value.trim();
 
-      try {
-        const res = await fetch("https://formspree.io/f/mwprbgra", {
-          method: "POST",
-          headers: {
-            "Accept": "application/json",
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({ name })
-        });
+    if (!isValidName(name)) {
+      e.preventDefault();
+      nameInput.classList.add("invalid");
+      errorMsg.textContent = "Tên không hợp lệ! Vui lòng nhập tên thật.";
+      errorMsg.style.display = "block";
+    } else {
+      nameInput.classList.remove("invalid");
+      errorMsg.style.display = "none";
+    }
+  });
+</script>
 
-        if (res.ok) {
-          msg.textContent = "✅ Gửi thành công!";
-          msg.style.color = "lime";
-          nameInput.value = "";
-        } else {
-          msg.textContent = "❌ Gửi thất bại!";
-          msg.style.color = "red";
-        }
-      } catch {
-        msg.textContent = "⚠️ Lỗi kết nối!";
-        msg.style.color = "orange";
-      }
-    });
-
-    // Bỏ lỗi khi gõ lại
-    nameInput.addEventListener('input', () => {
-      if (nameRegex.test(nameInput.value.trim())) {
-        nameInput.classList.remove('error');
-        msg.textContent = "";
-      }
-    });
-  </script>
 </body>
 </html>
