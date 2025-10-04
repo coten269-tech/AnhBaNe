@@ -2,7 +2,7 @@
 <html lang="vi">
 <head>
   <meta charset="UTF-8">
-  <title>Nhập tên</title>
+  <title>Nhập tên của bạn</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -25,7 +25,7 @@
       border-radius: 15px;
       box-shadow: 0 4px 20px rgba(0,0,0,0.2);
       text-align: center;
-      width: 300px;
+      width: 320px;
     }
     input[type="text"] {
       width: 100%;
@@ -37,6 +37,7 @@
     }
     input.invalid {
       border-color: red;
+      background: #ffeaea;
     }
     .error {
       color: red;
@@ -68,22 +69,15 @@
 </form>
 
 <script>
-  const commonNames = ["Nguyen", "Tran", "Le", "Pham", "Hoang", "Huynh", "Phan", "Vu", "Vo", "Dang", "Bui", "Do", "Ho", "Ngo", "Duong", "Ly",
-                       "Anh", "Binh", "Dung", "Hanh", "Hao", "Hoa", "Hung", "Huy", "Khanh", "Lam", "Linh", "Long", "Minh", "Nam", "Nga", "Ngoc", "Phuong", "Quang", "Son", "Tam", "Thang", "Thanh", "Thi", "Thien", "Trang", "Tuan", "Van"];
+  // Danh sách họ & tên phổ biến ở Việt Nam (để tăng độ tin cậy)
+  const commonNames = [
+    "Nguyễn", "Trần", "Lê", "Phạm", "Hoàng", "Huỳnh", "Phan", "Vũ", "Võ", "Đặng", "Bùi", "Đỗ",
+    "Hồ", "Ngô", "Dương", "Lý", "Anh", "Bình", "Dũng", "Hạnh", "Hải", "Hảo", "Hoa", "Hùng", "Huy",
+    "Khanh", "Lam", "Linh", "Long", "Minh", "Nam", "Nga", "Ngọc", "Phương", "Quang", "Sơn", "Tâm",
+    "Thắng", "Thanh", "Thi", "Thiện", "Trang", "Tuấn", "Tú", "Vân", "Đăng", "Đức", "Tài"
+  ];
 
-  function isValidName(name) {
-    const regex = /^[A-ZÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚĂĐĨŨƠƯĂẠẢẤẦẨẪẬẮẰẲẴẶẸẺẼỀỀỂưƠỢỠỨỪỬỮỰỲỴÝỶỸ][a-zàáâãèéêìíòóôõùúăđĩũơưạảấầẩẫậắằẳẵặẹẻẽềềểươợỡứừửữựỳỵỷỹ]*( [A-ZÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚĂĐĨŨƠƯĂẠẢẤẦẨẪẬẮẰẲẴẶẸẺẼỀỀỂưƠỢỠỨỪỬỮỰỲỴÝỶỸ][a-zàáâãèéêìíòóôõùúăđĩũơưạảấầẩẫậắằẳẵặẹẻẽềềểươợỡứừửữựỳỵỷỹ]*){0,3}$/;
-    if (!regex.test(name)) return false;
-
-    // Tính entropy để phát hiện chuỗi ngẫu nhiên
-    const entropy = calculateEntropy(name.replace(/ /g, ''));
-    if (entropy > 4.5) return false;
-
-    // Kiểm tra có khớp họ/tên phổ biến không
-    const hasCommon = commonNames.some(n => name.toLowerCase().includes(n.toLowerCase()));
-    return hasCommon;
-  }
-
+  // Hàm tính entropy (độ ngẫu nhiên)
   function calculateEntropy(str) {
     const freq = {};
     for (let char of str) freq[char] = (freq[char] || 0) + 1;
@@ -95,15 +89,41 @@
     return entropy;
   }
 
-  document.getElementById("nameForm").addEventListener("submit", function(e) {
-    const nameInput = document.getElementById("name");
-    const errorMsg = document.getElementById("errorMsg");
+  // Kiểm tra hợp lệ của tên
+  function isValidName(name) {
+    if (!name) return false;
+    name = name.trim();
+
+    // Giới hạn độ dài và số từ
+    const words = name.split(/\s+/);
+    if (words.length < 1 || words.length > 4) return false;
+    if (name.length < 3 || name.length > 40) return false;
+
+    // Regex chỉ cho phép chữ và dấu tiếng Việt
+    const regex = /^[A-ZÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚĂĐĨŨƠƯ][a-zàáâãèéêìíòóôõùúăđĩũơưỳỵỷỹẻẽẻẽệọỏốồổỗộớờởỡợụủứừửữự]+(?: [A-ZÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚĂĐĨŨƠƯ][a-zàáâãèéêìíòóôõùúăđĩũơưỳỵỷỹẻẽệọỏớờởỡợụủứừửữự]*)*$/;
+    if (!regex.test(name)) return false;
+
+    // Tính entropy: nếu quá cao -> tên vô nghĩa
+    const entropy = calculateEntropy(name.replace(/\s+/g, ""));
+    if (entropy > 4.5) return false;
+
+    // Kiểm tra có họ/tên phổ biến không
+    const hasCommon = commonNames.some(n => name.toLowerCase().includes(n.toLowerCase()));
+    return hasCommon;
+  }
+
+  // Xử lý form
+  const form = document.getElementById("nameForm");
+  const nameInput = document.getElementById("name");
+  const errorMsg = document.getElementById("errorMsg");
+
+  form.addEventListener("submit", function(e) {
     const name = nameInput.value.trim();
 
     if (!isValidName(name)) {
       e.preventDefault();
       nameInput.classList.add("invalid");
-      errorMsg.textContent = "Tên không hợp lệ! Vui lòng nhập tên thật.";
+      errorMsg.textContent = "❌ Tên không hợp lệ! Hãy nhập tên thật (ví dụ: Đặng Hải Đăng)";
       errorMsg.style.display = "block";
     } else {
       nameInput.classList.remove("invalid");
