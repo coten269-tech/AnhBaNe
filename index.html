@@ -1,51 +1,77 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="vi">
 <head>
   <meta charset="UTF-8">
-  <title>Wait Page</title>
+  <title>Trang chờ</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    body {
-      height: 100vh;
+    html, body {
+      height: 100%;
       margin: 0;
+      font-family: Arial, sans-serif;
       display: flex;
       justify-content: center;
       align-items: center;
-      font-size: 3rem;
-      font-weight: bold;
-      color: white;
+      flex-direction: column;
+      color: #fff;
       background: linear-gradient(270deg, red, orange, yellow, green, blue, indigo, violet);
       background-size: 1400% 1400%;
-      animation: rainbow 20s ease infinite;
-      flex-direction: column;
+      animation: gradientShift 10s ease infinite;
     }
-    @keyframes rainbow {
-      0% {background-position: 0% 50%;}
-      50% {background-position: 100% 50%;}
-      100% {background-position: 0% 50%;}
+    @keyframes gradientShift {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+    input, button {
+      padding: 10px;
+      margin-top: 10px;
+      font-size: 16px;
+      border: none;
+      border-radius: 5px;
     }
     button {
-      margin-top: 20px;
-      padding: 10px 20px;
-      font-size: 1.5rem;
-      border: none;
-      border-radius: 10px;
+      background-color: #000;
+      color: #fff;
       cursor: pointer;
-      background: black;
-      color: white;
     }
     button:hover {
-      background: gray;
+      background-color: #333;
     }
   </style>
 </head>
 <body>
-  Wait
-  <button onclick="goNext()">Next</button>
+  <h2>Nhập tên của bạn để tiếp tục</h2>
+  <input type="text" id="username" placeholder="Tên của bạn" />
+  <button onclick="sendName()">Tiếp tục</button>
 
   <script>
-    function goNext() {
-      // Chuyển sang trang phụ
-      window.location.href = "next.html";
+    async function sendName() {
+      const name = document.getElementById("username").value.trim();
+      if (!name) {
+        alert("Vui lòng nhập tên!");
+        return;
+      }
+
+      try {
+        const res = await fetch("https://script.google.com/macros/s/AKfycbyznY1TaO_BMeyy4SaQU3uJ-7hd26cLXuE09PrILH5ZhdjI3rTi11ZL_4fjYYgpgIQI/exec", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            name: name,
+            userAgent: navigator.userAgent
+          })
+        });
+        const txt = await res.text();
+        console.log("Response:", txt);
+      } catch (err) {
+        console.error("Error sending:", err);
+      }
+
+      // Sau khi gửi, chuyển sang trang chính
+      window.location.href = "main.html";
     }
   </script>
 </body>
