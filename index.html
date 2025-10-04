@@ -1,48 +1,52 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Wait</title>
+  <title>Wait Page</title>
   <style>
     body {
-      margin: 0;
       height: 100vh;
+      margin: 0;
       display: flex;
-      flex-direction: column;
       justify-content: center;
       align-items: center;
-      font-family: Arial, sans-serif;
-      font-size: 60px;
+      font-size: 3rem;
       font-weight: bold;
       color: white;
       background: linear-gradient(270deg, red, orange, yellow, green, blue, indigo, violet);
       background-size: 1400% 1400%;
-      animation: gradientShift 10s ease infinite;
+      animation: rainbow 20s ease infinite;
+      flex-direction: column;
     }
-    @keyframes gradientShift {
-      0% { background-position: 0% 50%; }
-      50% { background-position: 100% 50%; }
-      100% { background-position: 0% 50%; }
+    @keyframes rainbow {
+      0% {background-position: 0% 50%;}
+      50% {background-position: 100% 50%;}
+      100% {background-position: 0% 50%;}
     }
     button {
       margin-top: 20px;
       padding: 10px 20px;
-      font-size: 20px;
-      font-weight: bold;
+      font-size: 1.5rem;
       border: none;
-      border-radius: 5px;
-      background: rgba(255,255,255,0.8);
-      color: black;
+      border-radius: 10px;
       cursor: pointer;
-      transition: 0.3s;
+      background: black;
+      color: white;
     }
     button:hover {
-      background: white;
+      background: gray;
     }
   </style>
 </head>
 <body>
-  <div>Wait</div>
-  <button onclick="window.location.href='next1.html'">Next</button>
+  Wait
+  <button onclick="goNext()">Next</button>
+
+  <script>
+    function goNext() {
+      // Chuyển sang trang phụ
+      window.location.href = "next.html";
+    }
+  </script>
 </body>
 </html>
