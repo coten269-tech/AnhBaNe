@@ -56,9 +56,9 @@
     const hoPhoBien = ["nguyễn","trần","lê","phạm","hoàng","đặng","bùi","đỗ","vũ","võ","phan","ngô","dương","hồ"];
     const tenPhoBien = ["anh","bình","hạnh","đăng","đức","tuấn","minh","huy","long","linh","phương","quang","thắng","thanh","hải","sơn","tài","ngọc","tú","vân"];
     const nguyAm = "aeiouyàáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹ";
-    
+
     function removeAccents(str){ return str.normalize("NFD").replace(/[\u0300-\u036f]/g, ""); }
-    
+
     function entropy(str){
       const freq = {};
       for(let c of str) freq[c] = (freq[c]||0)+1;
@@ -72,6 +72,9 @@
       const words = name.split(" ");
       if(words.length < 1 || words.length > 4) return {ok:false, reason:"Tên phải có 1–4 từ"};
       if(name.length < 3 || name.length > 40) return {ok:false, reason:"Độ dài không hợp lệ"};
+
+      // ❌ Không cho ký tự số hoặc ký tự đặc biệt
+      if(/[^A-Za-zÀ-ỹ\s]/.test(name)) return {ok:false, reason:"Tên không được chứa số hoặc ký tự đặc biệt"};
 
       // chỉ chữ
       if(!/^[\p{L}\s]+$/u.test(name)) return {ok:false, reason:"Tên chỉ được chứa chữ cái"};
@@ -125,7 +128,7 @@
       errorDiv.style.display = "none";
       nameInput.classList.remove("invalid");
 
-      // Gửi đến Formspree
+      // ✅ Gửi đến Formspree (chỉ khi hợp lệ)
       try {
         const res = await fetch(form.action, {
           method: "POST",
