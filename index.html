@@ -2,202 +2,180 @@
 <html lang="vi">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Nhập tên</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Xác minh tên và ảnh</title>
   <style>
-    body{font-family:system-ui,Segoe UI,Roboto,Arial;display:flex;align-items:center;justify-content:center;height:100vh;
-      background:linear-gradient(270deg,#ff7a7a,#ffb36b,#fff38a,#9be89b,#7fb6ff,#b58bff);background-size:1400% 1400%;animation:bg 18s linear infinite}
-    @keyframes bg{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
-    .card{width:380px;background:#fff;padding:22px;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.12);text-align:center}
-    h1{margin:0 0 8px;font-size:20px;color:#111}
-    input[type="text"]{width:100%;padding:12px;border-radius:8px;border:2px solid #ddd;font-size:15px;box-sizing:border-box}
-    input.invalid{border-color:#e53935;background:#fff2f2;box-shadow:0 0 0 6px rgba(229,57,53,0.05)}
-    .msg{margin-top:10px;font-size:14px}
-    .err{color:#b00020}
-    .ok{color:#0b8043;font-weight:600}
-    button{margin-top:12px;padding:10px 14px;border-radius:8px;border:none;background:#1976d2;color:white;font-size:15px;cursor:pointer}
-    button:disabled{opacity:.6;cursor:not-allowed}
-    small{color:#666;display:block;margin-top:8px}
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      background: linear-gradient(270deg,#ff7a7a,#ffb36b,#fff38a,#9be89b,#7fb6ff,#b58bff);
+      background-size: 1400% 1400%;
+      animation: bg 18s linear infinite;
+    }
+    @keyframes bg {
+      0%{background-position:0% 50%}
+      50%{background-position:100% 50%}
+      100%{background-position:0% 50%}
+    }
+    .card {
+      width: 380px;
+      background: #fff;
+      padding: 22px;
+      border-radius: 12px;
+      box-shadow: 0 10px 30px rgba(0,0,0,.12);
+      text-align: center;
+    }
+    input[type="text"] {
+      width: 100%;
+      padding: 12px;
+      border-radius: 8px;
+      border: 2px solid #ddd;
+      font-size: 15px;
+      box-sizing: border-box;
+    }
+    .msg { margin-top: 10px; font-size: 14px; }
+    .err { color: #b00020; }
+    .ok { color: #0b8043; font-weight: 600; }
+    button {
+      margin-top: 12px;
+      padding: 10px 14px;
+      border-radius: 8px;
+      border: none;
+      background: #1976d2;
+      color: white;
+      font-size: 15px;
+      cursor: pointer;
+    }
+    video, canvas {
+      width: 100%;
+      border-radius: 8px;
+      margin-top: 10px;
+    }
+    #preview {
+      display: none;
+    }
   </style>
 </head>
 <body>
-  <div class="card" role="main">
-    <h1>Nhập tên của bạn</h1>
-    <input id="nameInput" type="text" autocomplete="name" placeholder="Ví dụ: Nguyễn Văn An" />
-    <div id="msg" class="msg" aria-live="polite"></div>
-    <button id="sendBtn" type="button">Gửi</button>
-    <small>Lưu ý: chỉ chữ (không số/ký tự đặc biệt). Hệ thống sẽ tự chuẩn hóa và kiểm tra trước khi gửi.</small>
+  <div class="card">
+    <h2>Xác minh danh tính</h2>
+    <input id="nameInput" type="text" placeholder="Nhập tên thật của bạn" />
+    <div id="msg" class="msg"></div>
+    <button id="openCam">📸 Mở camera</button>
+
+    <video id="video" autoplay playsinline style="display:none;"></video>
+    <canvas id="canvas" style="display:none;"></canvas>
+    <img id="preview" alt="Ảnh đã chụp"/>
+
+    <div id="confirmBtns" style="display:none;">
+      <button id="captureBtn">Chụp ảnh</button>
+      <button id="retakeBtn" style="display:none;">Chụp lại</button>
+      <button id="sendBtn" style="display:none;">Gửi</button>
+    </div>
   </div>
 
-<script>
-/* ---------- Cấu hình ---------- */
-const FORMSPREE_ENDPOINT = "https://formspree.io/f/mwprbgra"; // endpoint của bạn
+  <script>
+  const FORMSPREE_ENDPOINT = "https://formspree.io/f/mwprbgra";
 
-/* ---------- Utils ---------- */
-// gộp khoảng trắng nhiều thành 1 và trim
-function collapseSpaces(s){ return s.replace(/\s+/g,' ').trim(); }
+  const nameInput = document.getElementById('nameInput');
+  const msg = document.getElementById('msg');
+  const openCamBtn = document.getElementById('openCam');
+  const video = document.getElementById('video');
+  const canvas = document.getElementById('canvas');
+  const preview = document.getElementById('preview');
+  const captureBtn = document.getElementById('captureBtn');
+  const retakeBtn = document.getElementById('retakeBtn');
+  const sendBtn = document.getElementById('sendBtn');
+  const confirmBtns = document.getElementById('confirmBtns');
 
-// title-case (viết hoa chữ đầu mỗi từ), giữ diacritics
-function titleCaseVN(s){
-  s = collapseSpaces(s);
-  if (!s) return s;
-  return s.split(' ').map(w => {
-    const low = w.toLowerCase();
-    return low.charAt(0).toUpperCase() + low.slice(1);
-  }).join(' ');
-}
+  let stream = null;
+  let capturedImage = null;
 
-// remove diacritics (dùng normalize + removing combining marks)
-function removeDiacritics(s){
-  return s.normalize ? s.normalize('NFD').replace(/[\u0300-\u036f]/g,'') : s;
-}
-
-// Shannon entropy
-function entropy(str){
-  if(!str) return 0;
-  const freq = {};
-  for(const ch of str) freq[ch] = (freq[ch]||0)+1;
-  let ent = 0;
-  for(const k in freq){
-    const p = freq[k]/str.length;
-    ent -= p*Math.log2(p);
-  }
-  return ent;
-}
-
-/* ---------- Validation ---------- */
-const VOWELS_NO_ACCENT = 'aeiouy'; // compare after removing diacritics
-
-function validateNameRaw(input){
-  if (!input || !input.trim()) return {ok:false, reason:'Tên trống'};
-
-  const name = collapseSpaces(input);
-  const words = name.split(' ');
-
-  // số từ
-  if (words.length < 1 || words.length > 4) return {ok:false, reason:'Tên phải có 1–4 từ'};
-
-  // độ dài
-  if (name.length < 3) return {ok:false, reason:'Tên quá ngắn'};
-  if (name.length > 60) return {ok:false, reason:'Tên quá dài'};
-
-  // KHÔNG cho số hoặc ký tự đặc biệt (bao gồm các dấu phép toán, ngoặc, @ # $ ...)
-  // Nếu có chữ số hoặc ký tự ASCII punctuation — reject
-  if (/[0-9]/.test(name)) return {ok:false, reason:'Tên không được chứa số'};
-
-  // ASCII punctuation check
-  if (/[~`!@#$%^&*()_+\-=\[\]{};':"\\|,<.>\/?]/.test(name)) return {ok:false, reason:'Tên không được chứa ký tự đặc biệt'};
-
-  // kiểm tra ký tự chữ: cố gắng dùng Unicode property nếu trình duyệt hỗ trợ
-  let unicodeLettersSupported = true;
-  try {
-    new RegExp('\\p{L}', 'u');
-  } catch(e) { unicodeLettersSupported = false; }
-
-  if (unicodeLettersSupported){
-    if (!/^[\p{L}\s]+$/u.test(name)) return {ok:false, reason:'Tên chỉ chứa chữ và khoảng trắng'};
-  } else {
-    // fallback: cho phép Latin + Vietnamese range (không hoàn hảo nhưng đủ phổ biến)
-    if (!/^[A-Za-z\u00C0-\u024F\u1EA0-\u1EFF\s]+$/.test(name)) return {ok:false, reason:'Tên chỉ chứa chữ và khoảng trắng'};
+  // kiểm tra tên hợp lệ
+  function isValidName(name) {
+    return /^[A-Za-zÀ-ỹ\s]+$/.test(name.trim()) && name.trim().length >= 3;
   }
 
-  // mỗi từ phải có nguyên âm (so sánh sau khi bỏ dấu)
-  const normalizedWords = words.map(w => removeDiacritics(w).toLowerCase());
-  for(const w of normalizedWords){
-    if (![...w].some(ch => VOWELS_NO_ACCENT.includes(ch))) return {ok:false, reason:`Từ "${w}" không có nguyên âm`};
-  }
+  openCamBtn.onclick = async () => {
+    const name = nameInput.value.trim();
+    if (!isValidName(name)) {
+      msg.textContent = "❌ Vui lòng nhập tên thật trước khi mở camera.";
+      msg.className = "msg err";
+      return;
+    }
+    msg.textContent = "";
+    msg.className = "msg";
+    confirmBtns.style.display = "block";
 
-  // entropy (nếu quá ngẫu nhiên -> reject)
-  const ent = entropy(removeDiacritics(name).replace(/\s+/g,''));
-  if (ent > 4.6) return {ok:false, reason:'Tên trông giống chuỗi ngẫu nhiên'};
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      video.srcObject = stream;
+      video.style.display = "block";
+      openCamBtn.style.display = "none";
+      captureBtn.style.display = "inline-block";
+    } catch (err) {
+      msg.textContent = "❌ Không thể mở camera. Hãy cho phép truy cập camera.";
+      msg.className = "msg err";
+    }
+  };
 
-  // passed basic checks
-  return {ok:true, cleaned:name};
-}
+  captureBtn.onclick = () => {
+    const context = canvas.getContext('2d');
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+    capturedImage = canvas.toDataURL('image/png');
+    preview.src = capturedImage;
+    preview.style.display = "block";
+    canvas.style.display = "none";
+    video.style.display = "none";
+    captureBtn.style.display = "none";
+    retakeBtn.style.display = "inline-block";
+    sendBtn.style.display = "inline-block";
+  };
 
-/* ---------- DOM & hành vi ---------- */
-const nameInput = document.getElementById('nameInput');
-const msgDiv = document.getElementById('msg');
-const sendBtn = document.getElementById('sendBtn');
+  retakeBtn.onclick = () => {
+    preview.style.display = "none";
+    video.style.display = "block";
+    captureBtn.style.display = "inline-block";
+    retakeBtn.style.display = "none";
+    sendBtn.style.display = "none";
+  };
 
-function showError(text){
-  msgDiv.textContent = '✖ ' + text;
-  msgDiv.className = 'msg err';
-  nameInput.classList.add('invalid');
-}
-function showOK(text){
-  msgDiv.textContent = '✔ ' + text;
-  msgDiv.className = 'msg ok';
-  nameInput.classList.remove('invalid');
-}
-function clearMsg(){
-  msgDiv.textContent = '';
-  msgDiv.className = 'msg';
-  nameInput.classList.remove('invalid');
-}
+  sendBtn.onclick = async () => {
+    const name = nameInput.value.trim();
+    if (!isValidName(name)) {
+      msg.textContent = "❌ Tên không hợp lệ.";
+      msg.className = "msg err";
+      return;
+    }
 
-// Bỏ lỗi khi người dùng gõ
-nameInput.addEventListener('input', () => {
-  if (nameInput.classList.contains('invalid')) {
-    nameInput.classList.remove('invalid');
-    msgDiv.textContent = '';
-    msgDiv.className = 'msg';
-  }
-});
+    msg.textContent = "⏳ Đang gửi...";
+    msg.className = "msg";
 
-// Tự chuẩn hóa khi rời trường (blur) — giữ nhưng không bắt buộc
-nameInput.addEventListener('blur', () => {
-  nameInput.value = titleCaseVN(nameInput.value || '');
-});
+    const body = { name, image: capturedImage };
 
-// Xử lý submit (cản mọi gửi mặc định)
-sendBtn.addEventListener('click', handleSubmit);
-document.getElementById('nameInput').addEventListener('keydown', function(e){
-  if (e.key === 'Enter') { e.preventDefault(); handleSubmit(); }
-});
-
-async function handleSubmit(){
-  clearMsg();
-  let raw = nameInput.value || '';
-  raw = raw.trim();
-  if (!raw) { showError('Vui lòng nhập tên'); return; }
-
-  // chuẩn hóa (viết hoa chữ đầu mỗi từ) trước khi validate/send
-  const normalized = titleCaseVN(raw);
-
-  // validate
-  const check = validateNameRaw(normalized);
-  if (!check.ok) { showError(check.reason); return; }
-
-  // gửi
-  sendBtn.disabled = true;
-  sendBtn.textContent = 'Đang gửi...';
-  try {
     const res = await fetch(FORMSPREE_ENDPOINT, {
-      method: 'POST',
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ name: normalized })
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify(body)
     });
 
     if (res.ok) {
-      showOK('Gửi thành công — kiểm tra email bạn (nếu cần xác nhận Formspree).');
-      nameInput.value = '';
+      msg.textContent = "✅ Gửi thành công!";
+      msg.className = "msg ok";
+      nameInput.value = "";
+      preview.style.display = "none";
+      confirmBtns.style.display = "none";
+      if (stream) stream.getTracks().forEach(t => t.stop());
     } else {
-      // cố gắng đọc lỗi
-      let txt = 'Gửi thất bại';
-      try { const j = await res.json(); if (j && j.error) txt = j.error; } catch(e){}
-      showError(txt);
+      msg.textContent = "❌ Gửi thất bại, thử lại sau.";
+      msg.className = "msg err";
     }
-  } catch (err) {
-    showError('Lỗi kết nối. Kiểm tra mạng.');
-  } finally {
-    sendBtn.disabled = false;
-    sendBtn.textContent = 'Gửi';
-  }
-}
-</script>
+  };
+  </script>
 </body>
 </html>
