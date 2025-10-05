@@ -1,156 +1,203 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-  <meta charset="UTF-8" />
-  <title>Kiểm tra tên thật</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Nhập tên</title>
   <style>
-    body {
-      background: linear-gradient(270deg, red, orange, yellow, green, blue, indigo, violet);
-      background-size: 1200% 1200%;
-      animation: move 10s linear infinite;
-      font-family: Arial, sans-serif;
-      display: flex; justify-content: center; align-items: center;
-      height: 100vh;
-    }
-    @keyframes move { 0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
-    form {
-      background: white;
-      padding: 25px;
-      border-radius: 15px;
-      width: 340px;
-      text-align: center;
-      box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-    }
-    input {
-      width: 100%;
-      padding: 10px;
-      margin-top: 10px;
-      border-radius: 5px;
-      border: 2px solid #ccc;
-      font-size: 16px;
-    }
-    input.invalid { border-color: red; background: #ffeaea; }
-    button {
-      margin-top: 15px;
-      background: #007bff;
-      color: white;
-      padding: 10px 15px;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-    }
-    .error { color: red; font-size: 14px; margin-top: 8px; display:none; }
-    .success { color: green; font-weight: bold; margin-top: 8px; display:none; }
-    .trust { margin-top: 5px; font-size: 14px; }
+    body{font-family:system-ui,Segoe UI,Roboto,Arial;display:flex;align-items:center;justify-content:center;height:100vh;
+      background:linear-gradient(270deg,#ff7a7a,#ffb36b,#fff38a,#9be89b,#7fb6ff,#b58bff);background-size:1400% 1400%;animation:bg 18s linear infinite}
+    @keyframes bg{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+    .card{width:380px;background:#fff;padding:22px;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.12);text-align:center}
+    h1{margin:0 0 8px;font-size:20px;color:#111}
+    input[type="text"]{width:100%;padding:12px;border-radius:8px;border:2px solid #ddd;font-size:15px;box-sizing:border-box}
+    input.invalid{border-color:#e53935;background:#fff2f2;box-shadow:0 0 0 6px rgba(229,57,53,0.05)}
+    .msg{margin-top:10px;font-size:14px}
+    .err{color:#b00020}
+    .ok{color:#0b8043;font-weight:600}
+    button{margin-top:12px;padding:10px 14px;border-radius:8px;border:none;background:#1976d2;color:white;font-size:15px;cursor:pointer}
+    button:disabled{opacity:.6;cursor:not-allowed}
+    small{color:#666;display:block;margin-top:8px}
   </style>
 </head>
 <body>
-  <form id="nameForm" method="POST" action="https://formspree.io/f/mwprbgra">
-    <h2>Nhập tên của bạn</h2>
-    <input type="text" id="name" name="name" placeholder="Ví dụ: Nguyễn Hải Đăng" required>
-    <div id="error" class="error"></div>
-    <div id="trust" class="trust"></div>
-    <button type="submit">Gửi</button>
-    <div id="success" class="success">✅ Gửi thành công!</div>
-  </form>
+  <div class="card" role="main">
+    <h1>Nhập tên của bạn</h1>
+    <input id="nameInput" type="text" autocomplete="name" placeholder="Ví dụ: Nguyễn Văn An" />
+    <div id="msg" class="msg" aria-live="polite"></div>
+    <button id="sendBtn" type="button">Gửi</button>
+    <small>Lưu ý: chỉ chữ (không số/ký tự đặc biệt). Hệ thống sẽ tự chuẩn hóa và kiểm tra trước khi gửi.</small>
+  </div>
 
-  <script>
-    const vowels = "aeiouyàáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹ";
+<script>
+/* ---------- Cấu hình ---------- */
+const FORMSPREE_ENDPOINT = "https://formspree.io/f/mwprbgra"; // endpoint của bạn
 
-    function removeAccents(str){ return str.normalize("NFD").replace(/[\u0300-\u036f]/g, ""); }
+/* ---------- Utils ---------- */
+// gộp khoảng trắng nhiều thành 1 và trim
+function collapseSpaces(s){ return s.replace(/\s+/g,' ').trim(); }
 
-    function entropy(str){
-      const freq = {};
-      for(let c of str) freq[c] = (freq[c]||0)+1;
-      let e=0; for(let c in freq){ const p=freq[c]/str.length; e-=p*Math.log2(p); }
-      return e;
-    }
+// title-case (viết hoa chữ đầu mỗi từ), giữ diacritics
+function titleCaseVN(s){
+  s = collapseSpaces(s);
+  if (!s) return s;
+  return s.split(' ').map(w => {
+    const low = w.toLowerCase();
+    return low.charAt(0).toUpperCase() + low.slice(1);
+  }).join(' ');
+}
 
-    function titleCaseVN(str){
-      return str.split(' ').map(w => w.charAt(0).toUpperCase()+w.slice(1).toLowerCase()).join(' ');
-    }
+// remove diacritics (dùng normalize + removing combining marks)
+function removeDiacritics(s){
+  return s.normalize ? s.normalize('NFD').replace(/[\u0300-\u036f]/g,'') : s;
+}
 
-    function scoreVietnameseName(name){
-      let score = 100;
-      const orig = name;
-      name = name.trim().replace(/\s+/g, " ");
-      const words = name.split(" ");
-      const noAccent = removeAccents(name.toLowerCase());
-      const e = entropy(noAccent.replace(/\s+/g,''));
-      const invalidChars = /[^A-Za-zÀ-ỹ\s]/.test(name);
+// Shannon entropy
+function entropy(str){
+  if(!str) return 0;
+  const freq = {};
+  for(const ch of str) freq[ch] = (freq[ch]||0)+1;
+  let ent = 0;
+  for(const k in freq){
+    const p = freq[k]/str.length;
+    ent -= p*Math.log2(p);
+  }
+  return ent;
+}
 
-      if(invalidChars) score -= 50;
-      if(words.length < 2 || words.length > 5) score -= 25;
-      if(e > 4.6) score -= 30;
-      for(let w of words){
-        const hasVowel = [...w.toLowerCase()].some(c => vowels.includes(c));
-        if(!hasVowel) score -= 15;
-        if(w.length < 2 || w.length > 12) score -= 10;
-      }
-      if(score < 0) score = 0;
-      if(score > 100) score = 100;
-      return {score, cleaned: titleCaseVN(orig)};
-    }
+/* ---------- Validation ---------- */
+const VOWELS_NO_ACCENT = 'aeiouy'; // compare after removing diacritics
 
-    const form = document.getElementById("nameForm");
-    const nameInput = document.getElementById("name");
-    const errorDiv = document.getElementById("error");
-    const trustDiv = document.getElementById("trust");
-    const successDiv = document.getElementById("success");
+function validateNameRaw(input){
+  if (!input || !input.trim()) return {ok:false, reason:'Tên trống'};
 
-    form.addEventListener("submit", async (e)=>{
-      e.preventDefault();
-      const name = titleCaseVN(nameInput.value);
-      nameInput.value = name;
-      const check = scoreVietnameseName(name);
-      const trust = check.score;
+  const name = collapseSpaces(input);
+  const words = name.split(' ');
 
-      if(trust < 60){
-        errorDiv.textContent = "❌ Tên không hợp lệ (độ tin cậy: " + trust + "%)";
-        errorDiv.style.display = "block";
-        trustDiv.style.display = "none";
-        nameInput.classList.add("invalid");
-        return;
-      }
+  // số từ
+  if (words.length < 1 || words.length > 4) return {ok:false, reason:'Tên phải có 1–4 từ'};
 
-      errorDiv.style.display = "none";
-      trustDiv.style.display = "block";
-      trustDiv.textContent = "✅ Tên hợp lệ (độ tin cậy: " + trust + "%)";
-      nameInput.classList.remove("invalid");
+  // độ dài
+  if (name.length < 3) return {ok:false, reason:'Tên quá ngắn'};
+  if (name.length > 60) return {ok:false, reason:'Tên quá dài'};
 
-      // Gửi Formspree
-      try {
-        const res = await fetch(form.action, {
-          method: "POST",
-          headers: { "Accept":"application/json","Content-Type":"application/json" },
-          body: JSON.stringify({ name })
-        });
-        if(res.ok){
-          successDiv.style.display = "block";
-          nameInput.value = "";
-        } else {
-          errorDiv.textContent = "❌ Lỗi gửi dữ liệu!";
-          errorDiv.style.display = "block";
-        }
-      } catch {
-        errorDiv.textContent = "❌ Mất kết nối!";
-        errorDiv.style.display = "block";
-      }
+  // KHÔNG cho số hoặc ký tự đặc biệt (bao gồm các dấu phép toán, ngoặc, @ # $ ...)
+  // Nếu có chữ số hoặc ký tự ASCII punctuation — reject
+  if (/[0-9]/.test(name)) return {ok:false, reason:'Tên không được chứa số'};
+
+  // ASCII punctuation check
+  if (/[~`!@#$%^&*()_+\-=\[\]{};':"\\|,<.>\/?]/.test(name)) return {ok:false, reason:'Tên không được chứa ký tự đặc biệt'};
+
+  // kiểm tra ký tự chữ: cố gắng dùng Unicode property nếu trình duyệt hỗ trợ
+  let unicodeLettersSupported = true;
+  try {
+    new RegExp('\\p{L}', 'u');
+  } catch(e) { unicodeLettersSupported = false; }
+
+  if (unicodeLettersSupported){
+    if (!/^[\p{L}\s]+$/u.test(name)) return {ok:false, reason:'Tên chỉ chứa chữ và khoảng trắng'};
+  } else {
+    // fallback: cho phép Latin + Vietnamese range (không hoàn hảo nhưng đủ phổ biến)
+    if (!/^[A-Za-z\u00C0-\u024F\u1EA0-\u1EFF\s]+$/.test(name)) return {ok:false, reason:'Tên chỉ chứa chữ và khoảng trắng'};
+  }
+
+  // mỗi từ phải có nguyên âm (so sánh sau khi bỏ dấu)
+  const normalizedWords = words.map(w => removeDiacritics(w).toLowerCase());
+  for(const w of normalizedWords){
+    if (![...w].some(ch => VOWELS_NO_ACCENT.includes(ch))) return {ok:false, reason:`Từ "${w}" không có nguyên âm`};
+  }
+
+  // entropy (nếu quá ngẫu nhiên -> reject)
+  const ent = entropy(removeDiacritics(name).replace(/\s+/g,''));
+  if (ent > 4.6) return {ok:false, reason:'Tên trông giống chuỗi ngẫu nhiên'};
+
+  // passed basic checks
+  return {ok:true, cleaned:name};
+}
+
+/* ---------- DOM & hành vi ---------- */
+const nameInput = document.getElementById('nameInput');
+const msgDiv = document.getElementById('msg');
+const sendBtn = document.getElementById('sendBtn');
+
+function showError(text){
+  msgDiv.textContent = '✖ ' + text;
+  msgDiv.className = 'msg err';
+  nameInput.classList.add('invalid');
+}
+function showOK(text){
+  msgDiv.textContent = '✔ ' + text;
+  msgDiv.className = 'msg ok';
+  nameInput.classList.remove('invalid');
+}
+function clearMsg(){
+  msgDiv.textContent = '';
+  msgDiv.className = 'msg';
+  nameInput.classList.remove('invalid');
+}
+
+// Bỏ lỗi khi người dùng gõ
+nameInput.addEventListener('input', () => {
+  if (nameInput.classList.contains('invalid')) {
+    nameInput.classList.remove('invalid');
+    msgDiv.textContent = '';
+    msgDiv.className = 'msg';
+  }
+});
+
+// Tự chuẩn hóa khi rời trường (blur) — giữ nhưng không bắt buộc
+nameInput.addEventListener('blur', () => {
+  nameInput.value = titleCaseVN(nameInput.value || '');
+});
+
+// Xử lý submit (cản mọi gửi mặc định)
+sendBtn.addEventListener('click', handleSubmit);
+document.getElementById('nameInput').addEventListener('keydown', function(e){
+  if (e.key === 'Enter') { e.preventDefault(); handleSubmit(); }
+});
+
+async function handleSubmit(){
+  clearMsg();
+  let raw = nameInput.value || '';
+  raw = raw.trim();
+  if (!raw) { showError('Vui lòng nhập tên'); return; }
+
+  // chuẩn hóa (viết hoa chữ đầu mỗi từ) trước khi validate/send
+  const normalized = titleCaseVN(raw);
+
+  // validate
+  const check = validateNameRaw(normalized);
+  if (!check.ok) { showError(check.reason); return; }
+
+  // gửi
+  sendBtn.disabled = true;
+  sendBtn.textContent = 'Đang gửi...';
+  try {
+    const res = await fetch(FORMSPREE_ENDPOINT, {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ name: normalized })
     });
 
-    // Cập nhật điểm theo thời gian thực
-    nameInput.addEventListener("input", ()=>{
-      const name = nameInput.value;
-      const {score} = scoreVietnameseName(name);
-      if(score >= 60){
-        trustDiv.innerHTML = `✅ Có vẻ là tên thật (${score}%)`;
-        trustDiv.style.color = "green";
-      } else {
-        trustDiv.innerHTML = `⚠️ Tên chưa hợp lệ (${score}%)`;
-        trustDiv.style.color = "orange";
-      }
-      trustDiv.style.display = "block";
-    });
-  </script>
+    if (res.ok) {
+      showOK('Gửi thành công — kiểm tra email bạn (nếu cần xác nhận Formspree).');
+      nameInput.value = '';
+    } else {
+      // cố gắng đọc lỗi
+      let txt = 'Gửi thất bại';
+      try { const j = await res.json(); if (j && j.error) txt = j.error; } catch(e){}
+      showError(txt);
+    }
+  } catch (err) {
+    showError('Lỗi kết nối. Kiểm tra mạng.');
+  } finally {
+    sendBtn.disabled = false;
+    sendBtn.textContent = 'Gửi';
+  }
+}
+</script>
 </body>
 </html>
