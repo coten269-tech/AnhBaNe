@@ -41,6 +41,7 @@
     }
     .error { color: red; font-size: 14px; margin-top: 8px; display:none; }
     .success { color: green; font-weight: bold; margin-top: 8px; display:none; }
+    .trust { margin-top: 5px; font-size: 14px; }
   </style>
 </head>
 <body>
@@ -48,14 +49,13 @@
     <h2>Nhập tên của bạn</h2>
     <input type="text" id="name" name="name" placeholder="Ví dụ: Nguyễn Hải Đăng" required>
     <div id="error" class="error"></div>
+    <div id="trust" class="trust"></div>
     <button type="submit">Gửi</button>
     <div id="success" class="success">✅ Gửi thành công!</div>
   </form>
 
   <script>
-    const hoPhoBien = ["nguyễn","trần","lê","phạm","hoàng","đặng","bùi","đỗ","vũ","võ","phan","ngô","dương","hồ"];
-    const tenPhoBien = ["anh","bình","hạnh","đăng","đức","tuấn","minh","huy","long","linh","phương","quang","thắng","thanh","hải","sơn","tài","ngọc","tú","vân"];
-    const nguyAm = "aeiouyàáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹ";
+    const vowels = "aeiouyàáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹ";
 
     function removeAccents(str){ return str.normalize("NFD").replace(/[\u0300-\u036f]/g, ""); }
 
@@ -66,69 +66,59 @@
       return e;
     }
 
-    function isLikelyVietnameseName(name){
-      if(!name) return {ok:false, reason:"Tên trống"};
-      name = name.trim().replace(/\s+/g, " ");
-      const words = name.split(" ");
-      if(words.length < 1 || words.length > 4) return {ok:false, reason:"Tên phải có 1–4 từ"};
-      if(name.length < 3 || name.length > 40) return {ok:false, reason:"Độ dài không hợp lệ"};
-
-      // ❌ Không cho ký tự số hoặc ký tự đặc biệt
-      if(/[^A-Za-zÀ-ỹ\s]/.test(name)) return {ok:false, reason:"Tên không được chứa số hoặc ký tự đặc biệt"};
-
-      // chỉ chữ
-      if(!/^[\p{L}\s]+$/u.test(name)) return {ok:false, reason:"Tên chỉ được chứa chữ cái"};
-
-      // entropy
-      if(entropy(name.replace(/\s+/g,'')) > 4.5) return {ok:false, reason:"Tên trông như chuỗi ngẫu nhiên"};
-
-      // nguyên âm mỗi từ
-      for(let w of words){
-        if(![...w.toLowerCase()].some(c => nguyAm.includes(c)))
-          return {ok:false, reason:`Từ '${w}' không có nguyên âm`};
-      }
-
-      // kiểm tra tên phổ biến
-      const noAccent = removeAccents(name.toLowerCase());
-      const hasHo = hoPhoBien.some(h => noAccent.includes(h));
-      const hasTen = tenPhoBien.some(t => noAccent.includes(t));
-      if(!hasHo && !hasTen)
-        return {ok:false, reason:"Không có họ hoặc tên phổ biến"};
-
-      // không lặp lại từ nhiều lần
-      const lowerWords = words.map(w=>w.toLowerCase());
-      const set = new Set(lowerWords);
-      if(set.size < lowerWords.length - 1)
-        return {ok:false, reason:"Tên có từ bị lặp lại"};
-
-      return {ok:true, cleaned: name};
-    }
-
     function titleCaseVN(str){
       return str.split(' ').map(w => w.charAt(0).toUpperCase()+w.slice(1).toLowerCase()).join(' ');
+    }
+
+    function scoreVietnameseName(name){
+      let score = 100;
+      const orig = name;
+      name = name.trim().replace(/\s+/g, " ");
+      const words = name.split(" ");
+      const noAccent = removeAccents(name.toLowerCase());
+      const e = entropy(noAccent.replace(/\s+/g,''));
+      const invalidChars = /[^A-Za-zÀ-ỹ\s]/.test(name);
+
+      if(invalidChars) score -= 50;
+      if(words.length < 2 || words.length > 5) score -= 25;
+      if(e > 4.6) score -= 30;
+      for(let w of words){
+        const hasVowel = [...w.toLowerCase()].some(c => vowels.includes(c));
+        if(!hasVowel) score -= 15;
+        if(w.length < 2 || w.length > 12) score -= 10;
+      }
+      if(score < 0) score = 0;
+      if(score > 100) score = 100;
+      return {score, cleaned: titleCaseVN(orig)};
     }
 
     const form = document.getElementById("nameForm");
     const nameInput = document.getElementById("name");
     const errorDiv = document.getElementById("error");
+    const trustDiv = document.getElementById("trust");
     const successDiv = document.getElementById("success");
 
     form.addEventListener("submit", async (e)=>{
       e.preventDefault();
-      successDiv.style.display = "none";
       const name = titleCaseVN(nameInput.value);
       nameInput.value = name;
-      const check = isLikelyVietnameseName(name);
-      if(!check.ok){
-        errorDiv.textContent = "❌ " + check.reason;
+      const check = scoreVietnameseName(name);
+      const trust = check.score;
+
+      if(trust < 60){
+        errorDiv.textContent = "❌ Tên không hợp lệ (độ tin cậy: " + trust + "%)";
         errorDiv.style.display = "block";
+        trustDiv.style.display = "none";
         nameInput.classList.add("invalid");
         return;
       }
+
       errorDiv.style.display = "none";
+      trustDiv.style.display = "block";
+      trustDiv.textContent = "✅ Tên hợp lệ (độ tin cậy: " + trust + "%)";
       nameInput.classList.remove("invalid");
 
-      // ✅ Gửi đến Formspree (chỉ khi hợp lệ)
+      // Gửi Formspree
       try {
         const res = await fetch(form.action, {
           method: "POST",
@@ -146,6 +136,20 @@
         errorDiv.textContent = "❌ Mất kết nối!";
         errorDiv.style.display = "block";
       }
+    });
+
+    // Cập nhật điểm theo thời gian thực
+    nameInput.addEventListener("input", ()=>{
+      const name = nameInput.value;
+      const {score} = scoreVietnameseName(name);
+      if(score >= 60){
+        trustDiv.innerHTML = `✅ Có vẻ là tên thật (${score}%)`;
+        trustDiv.style.color = "green";
+      } else {
+        trustDiv.innerHTML = `⚠️ Tên chưa hợp lệ (${score}%)`;
+        trustDiv.style.color = "orange";
+      }
+      trustDiv.style.display = "block";
     });
   </script>
 </body>
