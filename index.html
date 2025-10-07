@@ -82,6 +82,7 @@
     </div>
   </div>
 
+  <!-- TOÀN BỘ CODE JAVASCRIPT NẰM GỌN TRONG THẺ SCRIPT -->
   <script>
   const FORMSPREE_ENDPOINT = "https://formspree.io/f/mwprbgra";
 
@@ -178,7 +179,7 @@
     }
   };
 
-  // gửi dữ liệu (sửa để gửi ảnh đính kèm thật)
+  // gửi dữ liệu (gửi ảnh đính kèm thật)
   sendBtn.onclick = async () => {
     const name = nameInput.value.trim();
     if (!isValidName(name)) {
@@ -193,7 +194,6 @@
     msg.textContent = "⏳ Đang gửi...";
     msg.className = "msg";
 
-    // Hàm chuyển base64 → Blob
     function dataURLtoBlob(dataURL) {
       const arr = dataURL.split(',');
       const mime = arr[0].match(/:(.*?);/)[1];
@@ -204,7 +204,6 @@
       return new Blob([u8arr], { type: mime });
     }
 
-    // Tạo form dữ liệu kiểu multipart/form-data
     const formData = new FormData();
     formData.append("name", name);
     formData.append("image", dataURLtoBlob(capturedImage), "face.png");
