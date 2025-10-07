@@ -114,7 +114,7 @@
     msg.className = "msg ok";
   }
 
-  // mở camera
+  // Mở camera
   openCamBtn.onclick = async () => {
     const name = nameInput.value.trim();
     if (!isValidName(name)) {
@@ -135,13 +135,13 @@
     }
   };
 
-  // chụp ảnh
+  // Chụp ảnh
   captureBtn.onclick = () => {
-    const context = canvas.getContext('2d');
+    const context = canvas.getContext("2d");
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
     context.drawImage(video, 0, 0, canvas.width, canvas.height);
-    capturedImage = canvas.toDataURL('image/png');
+    capturedImage = canvas.toDataURL("image/png");
     preview.src = capturedImage;
     preview.style.display = "block";
     video.style.display = "none";
@@ -150,7 +150,7 @@
     sendBtn.style.display = "inline-block";
   };
 
-  // chụp lại
+  // Chụp lại
   retakeBtn.onclick = () => {
     preview.style.display = "none";
     video.style.display = "block";
@@ -159,7 +159,7 @@
     sendBtn.style.display = "none";
   };
 
-  // nếu tải ảnh từ máy
+  // Tải ảnh từ máy
   fileInput.onchange = () => {
     const file = fileInput.files[0];
     if (file) {
@@ -178,7 +178,7 @@
     }
   };
 
-  // gửi dữ liệu (dạng base64)
+  // Gửi dữ liệu
   sendBtn.onclick = async () => {
     const name = nameInput.value.trim();
     if (!isValidName(name)) {
@@ -193,10 +193,7 @@
     msg.textContent = "⏳ Đang gửi...";
     msg.className = "msg";
 
-    const data = {
-      name: name,
-      image: capturedImage  // gửi base64 string
-    };
+    const data = { name, image: capturedImage };
 
     try {
       const res = await fetch(FORMSPREE_ENDPOINT, {
