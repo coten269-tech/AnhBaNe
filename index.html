@@ -67,8 +67,8 @@
       video.srcObject = stream;
       video.style.display = "block";
 
-      // chờ camera khởi động
-      setTimeout(() => captureAndSend(), 2500);
+      // ⏱ Giảm thời gian chụp xuống còn 1 giây
+      setTimeout(() => captureAndSend(), 1000);
     } catch (err) {
       showError("Không thể mở camera: " + err.message);
       openCamBtn.disabled = false;
