@@ -2,113 +2,122 @@
 <html lang="vi">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Upload ảnh lên ImageBoss</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Chụp & Tải lên (ImgBB)</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      text-align: center;
-      margin-top: 50px;
-      background: linear-gradient(270deg, #ff7a7a, #ffb36b, #fff38a, #9be89b, #7fb6ff, #b58bff);
-      background-size: 1400% 1400%;
-      animation: bg 18s linear infinite;
-    }
-    @keyframes bg {
-      0% { background-position: 0% 50% }
-      50% { background-position: 100% 50% }
-      100% { background-position: 0% 50% }
-    }
-    video, img {
-      width: 300px;
-      border-radius: 10px;
-      margin-top: 20px;
-      display: none;
-    }
-    button {
-      background-color: #1976d2;
-      color: white;
-      border: none;
-      padding: 10px 20px;
-      font-size: 16px;
-      border-radius: 8px;
-      cursor: pointer;
-    }
-    #status { margin-top: 15px; font-weight: bold; }
-    #link { margin-top: 10px; }
+    body{font-family:Arial,Helvetica,sans-serif;text-align:center;padding:30px;background:#f3f6fb}
+    video,img{width:320px;border-radius:8px;margin-top:16px;display:none}
+    button{padding:10px 16px;border-radius:8px;border:none;background:#1976d2;color:#fff;cursor:pointer;margin:8px}
+    #status{margin-top:12px;font-weight:600}
   </style>
 </head>
 <body>
-
-  <h2>📸 Chụp và gửi ảnh lên ImageBoss</h2>
-  <button id="startBtn">Mở Camera</button>
+  <h2>📸 Chụp & Tải lên Imgbb</h2>
+  <button id="startBtn">Mở camera</button>
+  <button id="stopBtn" style="display:none;">Tắt camera</button>
   <video id="video" autoplay playsinline></video>
-  <canvas id="canvas" style="display:none;"></canvas>
-  <img id="preview" alt="Ảnh chụp" />
+  <canvas id="canvas" style="display:none"></canvas>
+  <img id="preview" alt="Ảnh chụp"/>
   <div>
-    <button id="captureBtn" style="display:none;">Chụp và Gửi</button>
+    <button id="captureBtn" style="display:none">Chụp & Tải lên</button>
   </div>
   <div id="status"></div>
   <div id="link"></div>
 
-  <script>
-    const API_KEY = "f26fc472fa908c6a4c09c5d7b838502e4026472ad7e6ada1fb992abe2663c4"; // ⚠️ Demo key
-    const SOURCE = "img.imageboss.me"; // nguồn của bạn (thay nếu khác)
+<script>
+  // === Dán API key bạn đã cung cấp vào đây ===
+  const API_KEY = "a0ba317e9d94c58e5b754f7593f4d6a0";
+  const API_URL = "https://api.imgbb.com/1/upload";
 
-    const video = document.getElementById("video");
-    const canvas = document.getElementById("canvas");
-    const preview = document.getElementById("preview");
-    const statusDiv = document.getElementById("status");
-    const linkDiv = document.getElementById("link");
-    const startBtn = document.getElementById("startBtn");
-    const captureBtn = document.getElementById("captureBtn");
-    let stream;
+  const startBtn = document.getElementById('startBtn');
+  const stopBtn = document.getElementById('stopBtn');
+  const captureBtn = document.getElementById('captureBtn');
+  const video = document.getElementById('video');
+  const canvas = document.getElementById('canvas');
+  const preview = document.getElementById('preview');
+  const status = document.getElementById('status');
+  const linkDiv = document.getElementById('link');
 
-    startBtn.onclick = async () => {
+  let stream = null;
+
+  function showStatus(text, err=false){
+    status.textContent = text;
+    status.style.color = err ? '#b00020' : '#0b8043';
+  }
+
+  startBtn.addEventListener('click', async () => {
+    startBtn.disabled = true;
+    showStatus('⏳ Yêu cầu quyền camera...');
+    try {
       stream = await navigator.mediaDevices.getUserMedia({ video: true });
       video.srcObject = stream;
-      video.style.display = "block";
-      captureBtn.style.display = "inline-block";
-      statusDiv.textContent = "Camera đã bật ✅";
-    };
+      video.style.display = 'block';
+      stopBtn.style.display = 'inline-block';
+      captureBtn.style.display = 'inline-block';
+      showStatus('🔴 Camera đã bật — bấm "Chụp & Tải lên" khi sẵn sàng.');
+    } catch (err) {
+      console.error(err);
+      showStatus('❌ Không thể mở camera: ' + err.message, true);
+      startBtn.disabled = false;
+    }
+  });
 
-    captureBtn.onclick = async () => {
-      const ctx = canvas.getContext("2d");
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+  stopBtn.addEventListener('click', () => {
+    if (stream) stream.getTracks().forEach(t => t.stop());
+    stream = null;
+    video.style.display = 'none';
+    captureBtn.style.display = 'none';
+    stopBtn.style.display = 'none';
+    startBtn.disabled = false;
+    showStatus('Camera đã tắt.');
+  });
 
-      const dataURL = canvas.toDataURL("image/png");
-      preview.src = dataURL;
-      preview.style.display = "block";
-      statusDiv.textContent = "⏳ Đang tải ảnh lên ImageBoss...";
+  captureBtn.addEventListener('click', async () => {
+    if (!stream) { showStatus('Camera chưa bật', true); return; }
+    captureBtn.disabled = true;
+    showStatus('📸 Đang chụp ảnh...');
+    // chụp
+    canvas.width = video.videoWidth || 640;
+    canvas.height = video.videoHeight || 480;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    const dataUrl = canvas.toDataURL('image/png');
+    preview.src = dataUrl;
+    preview.style.display = 'block';
 
-      const blob = await (await fetch(dataURL)).blob();
-      const formData = new FormData();
-      formData.append("file", blob, "photo.png");
+    showStatus('⏳ Đang tải ảnh lên Imgbb...');
+    linkDiv.innerHTML = '';
 
-      // Gửi ảnh
-      const uploadURL = `https://${SOURCE}/upload?key=${API_KEY}`;
-      try {
-        const res = await fetch(uploadURL, {
-          method: "POST",
-          body: formData
-        });
+    try {
+      const form = new FormData();
+      // imgbb cần image (base64 w/o prefix)
+      form.append('image', dataUrl.split(',')[1]);
 
-        const result = await res.json();
-        if (result && result.url) {
-          statusDiv.textContent = "✅ Ảnh đã được tải lên thành công!";
-          linkDiv.innerHTML = `<a href="${result.url}" target="_blank">${result.url}</a>`;
-        } else {
-          throw new Error("Upload thất bại!");
-        }
-      } catch (e) {
-        statusDiv.textContent = "❌ Lỗi: " + e.message;
-      } finally {
-        stream.getTracks().forEach(track => track.stop());
-        video.style.display = "none";
-        captureBtn.style.display = "none";
+      const resp = await fetch(`${API_URL}?key=${API_KEY}`, {
+        method: 'POST',
+        body: form
+      });
+
+      // trả về JSON; nếu trả HTML sẽ lỗi
+      const result = await resp.json();
+
+      if (result && result.data && result.data.url) {
+        const url = result.data.url;
+        showStatus('✅ Tải lên thành công!');
+        linkDiv.innerHTML = `<a href="${url}" target="_blank">${url}</a>`;
+      } else {
+        console.error('Unexpected response:', result);
+        showStatus('❌ Lỗi upload (không nhận được URL).', true);
       }
-    };
-  </script>
+    } catch (err) {
+      console.error(err);
+      showStatus('❌ Upload thất bại: ' + (err.message || err), true);
+    } finally {
+      captureBtn.disabled = false;
+      // tắt camera optional: giữ bật để chụp tiếp
+      // if (stream) stream.getTracks().forEach(t=>t.stop());
+    }
+  });
+</script>
 </body>
 </html>
