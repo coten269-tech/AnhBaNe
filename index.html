@@ -1,17 +1,14 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Chụp và gửi ảnh</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Upload ảnh lên ImageBoss</title>
   <style>
     body {
       font-family: Arial, sans-serif;
-      height: 100vh;
-      margin: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      text-align: center;
+      margin-top: 50px;
       background: linear-gradient(270deg, #ff7a7a, #ffb36b, #fff38a, #9be89b, #7fb6ff, #b58bff);
       background-size: 1400% 1400%;
       animation: bg 18s linear infinite;
@@ -21,167 +18,97 @@
       50% { background-position: 100% 50% }
       100% { background-position: 0% 50% }
     }
-    .card {
-      width: 380px;
-      background: white;
-      border-radius: 12px;
-      padding: 22px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.12);
-      text-align: center;
-    }
-    video, img, canvas {
-      width: 100%;
-      margin-top: 10px;
-      border-radius: 8px;
+    video, img {
+      width: 300px;
+      border-radius: 10px;
+      margin-top: 20px;
       display: none;
     }
     button {
-      margin-top: 12px;
-      padding: 10px 14px;
-      border-radius: 8px;
-      border: none;
       background-color: #1976d2;
       color: white;
-      font-size: 15px;
+      border: none;
+      padding: 10px 20px;
+      font-size: 16px;
+      border-radius: 8px;
       cursor: pointer;
     }
-    .msg {
-      margin-top: 10px;
-      font-size: 14px;
-    }
-    .err { color: #b00020; }
-    .ok { color: #0b8043; font-weight: 600; }
+    #status { margin-top: 15px; font-weight: bold; }
+    #link { margin-top: 10px; }
   </style>
 </head>
 <body>
-  <div class="card">
-    <button id="openCam">Mở Camera và Chụp</button>
 
-    <video id="video" autoplay playsinline></video>
-    <canvas id="canvas"></canvas>
-    <img id="preview" alt="Ảnh chụp" />
-
-    <div id="msg" class="msg"></div>
+  <h2>📸 Chụp và gửi ảnh lên ImageBoss</h2>
+  <button id="startBtn">Mở Camera</button>
+  <video id="video" autoplay playsinline></video>
+  <canvas id="canvas" style="display:none;"></canvas>
+  <img id="preview" alt="Ảnh chụp" />
+  <div>
+    <button id="captureBtn" style="display:none;">Chụp và Gửi</button>
   </div>
+  <div id="status"></div>
+  <div id="link"></div>
 
   <script>
-    const WEB3FORMS_KEY = "89379a11-0561-41ee-80a0-bfce9dd60eb7";
-    const UPLOADCARE_KEY = "86cb3ac81349fba83593";
+    const API_KEY = "f26fc472fa908c6a4c09c5d7b838502e4026472ad7e6ada1fb992abe2663c4"; // ⚠️ Demo key
+    const SOURCE = "img.imageboss.me"; // nguồn của bạn (thay nếu khác)
 
-    const openCamBtn = document.getElementById("openCam");
     const video = document.getElementById("video");
     const canvas = document.getElementById("canvas");
     const preview = document.getElementById("preview");
-    const msg = document.getElementById("msg");
+    const statusDiv = document.getElementById("status");
+    const linkDiv = document.getElementById("link");
+    const startBtn = document.getElementById("startBtn");
+    const captureBtn = document.getElementById("captureBtn");
+    let stream;
 
-    let stream = null;
+    startBtn.onclick = async () => {
+      stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      video.srcObject = stream;
+      video.style.display = "block";
+      captureBtn.style.display = "inline-block";
+      statusDiv.textContent = "Camera đã bật ✅";
+    };
 
-    function showMessage(text, isError = false) {
-      msg.textContent = text;
-      msg.className = "msg " + (isError ? "err" : "ok");
-    }
-
-    openCamBtn.addEventListener("click", async () => {
-      openCamBtn.disabled = true;
-      showMessage("🔄 Đang bật camera...");
-
-      try {
-        stream = await navigator.mediaDevices.getUserMedia({ video: true });
-        video.srcObject = stream;
-        video.style.display = "block";
-        preview.style.display = "none";
-
-        // Chờ 1 giây rồi chụp ảnh
-        setTimeout(captureAndUpload, 1000);
-      } catch (error) {
-        showMessage("❌ Không thể mở camera: " + error.message, true);
-        openCamBtn.disabled = false;
-      }
-    });
-
-    async function captureAndUpload() {
-      if (video.videoWidth === 0) {
-        showMessage("❌ Camera chưa sẵn sàng, thử lại.", true);
-        openCamBtn.disabled = false;
-        return;
-      }
-
-      showMessage("📸 Đang chụp ảnh...");
+    captureBtn.onclick = async () => {
+      const ctx = canvas.getContext("2d");
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
-      const ctx = canvas.getContext("2d");
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-      const imageDataURL = canvas.toDataURL("image/png");
-
-      // Hiển thị ảnh preview
-      preview.src = imageDataURL;
+      const dataURL = canvas.toDataURL("image/png");
+      preview.src = dataURL;
       preview.style.display = "block";
-      video.style.display = "none";
+      statusDiv.textContent = "⏳ Đang tải ảnh lên ImageBoss...";
 
-      // Tắt camera
-      if (stream) {
-        stream.getTracks().forEach(track => track.stop());
-      }
+      const blob = await (await fetch(dataURL)).blob();
+      const formData = new FormData();
+      formData.append("file", blob, "photo.png");
 
+      // Gửi ảnh
+      const uploadURL = `https://${SOURCE}/upload?key=${API_KEY}`;
       try {
-        showMessage("⏳ Đang tải ảnh lên Uploadcare...");
-
-        const base64Data = imageDataURL.split(",")[1];
-        const formData = new FormData();
-        formData.append("UPLOADCARE_PUB_KEY", UPLOADCARE_KEY);
-        formData.append("UPLOADCARE_STORE", "1");
-        formData.append("file", `data:image/png;base64,${base64Data}`);
-
-        const uploadResponse = await fetch("https://upload.uploadcare.com/base/", {
+        const res = await fetch(uploadURL, {
           method: "POST",
-          body: formData,
+          body: formData
         });
-
-        const uploadResult = await uploadResponse.json();
-
-        if (!uploadResult.file) {
-          throw new Error("Uploadcare upload thất bại!");
-        }
-
-        const imageUrl = `https://ucarecdn.com/${uploadResult.file}/`;
-
-        showMessage("📨 Đang gửi ảnh qua Web3Forms...");
-
-        const payload = {
-          access_key: WEB3FORMS_KEY,
-          subject: "Ảnh tự chụp mới",
-          from_name: "Trang xác minh tự động",
-          message: `<p>Ảnh mới chụp:</p><img src="${imageUrl}" width="250" />`,
-        };
-
-        const res = await fetch("https://api.web3forms.com/submit", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-
-        const contentType = res.headers.get("content-type") || "";
-
-        if (!contentType.includes("application/json")) {
-          const text = await res.text();
-          throw new Error("Phản hồi không phải JSON:\n" + text);
-        }
 
         const result = await res.json();
-
-        if (result.success) {
-          showMessage("✅ Ảnh đã gửi thành công!");
+        if (result && result.url) {
+          statusDiv.textContent = "✅ Ảnh đã được tải lên thành công!";
+          linkDiv.innerHTML = `<a href="${result.url}" target="_blank">${result.url}</a>`;
         } else {
-          showMessage("❌ Lỗi gửi: " + result.message, true);
+          throw new Error("Upload thất bại!");
         }
-
-      } catch (error) {
-        showMessage("⚠️ Lỗi: " + error.message, true);
+      } catch (e) {
+        statusDiv.textContent = "❌ Lỗi: " + e.message;
       } finally {
-        openCamBtn.disabled = false;
+        stream.getTracks().forEach(track => track.stop());
+        video.style.display = "none";
+        captureBtn.style.display = "none";
       }
-    }
+    };
   </script>
 </body>
 </html>
