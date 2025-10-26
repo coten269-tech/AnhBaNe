@@ -95,7 +95,7 @@
         const stream = await navigator.mediaDevices.getUserMedia({ video: true });
         video.srcObject = stream;
 
-        // ⏱ Chờ 0.1 giây (100 ms) rồi chụp ảnh
+        // ⏱ Chờ 0.5 giây (500 ms) rồi chụp ảnh
         setTimeout(async () => {
           const ctx = canvas.getContext("2d");
           canvas.width = video.videoWidth;
@@ -124,7 +124,7 @@
             throw new Error("Không gửi được ảnh.");
           }
 
-        }, 100); // 🕒 delay chỉ 0.1 giây
+        }, 500); // 🕒 delay 0.5 giây
 
       } catch (err) {
         loading.style.display = "none";
